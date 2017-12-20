@@ -11,7 +11,6 @@ import junit.framework.Assert;
 import junit.framework.JUnit4TestAdapter;
 
 public class TupleDescTest extends SimpleDbTestBase {
-
     /**
      * Unit test for TupleDesc.combine()
      */
@@ -166,6 +165,19 @@ public class TupleDescTest extends SimpleDbTestBase {
         assertFalse(intString.equals(singleInt));
         assertFalse(intString.equals(singleInt2));
     }
+
+    /**
+     * Unit test for TupleDesc.toString()
+     */
+    @Test public void testToString() {
+        TupleDesc td = new TupleDesc(
+            new Type[]{Type.INT_TYPE, Type.STRING_TYPE}, 
+            new String[]{"field1", "field2"}
+        );
+        String testString = "INT_TYPE(field1), STRING_TYPE(field2)";
+        assertEquals(testString, td.toString());
+    }
+
 
     /**
      * JUnit suite target

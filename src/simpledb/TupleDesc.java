@@ -5,6 +5,8 @@ import java.util.*;
  * TupleDesc describes the schema of a tuple.
  */
 public class TupleDesc {
+    private ArrayList<Type> tupleTypes;
+    private ArrayList<String> tupleFields;
 
     /**
      * Merge two TupleDescs into one, with td1.numFields + td2.numFields
@@ -15,8 +17,17 @@ public class TupleDesc {
      * @return the new TupleDesc
      */
     public static TupleDesc combine(TupleDesc td1, TupleDesc td2) {
-        // some code goes here
-        return null;
+        ArrayList<Type> combinedTypes = new ArrayList<Type>();
+        ArrayList<String> combinedFields = new ArrayList<String>();
+        
+        combinedTypes.addAll(td1.tupleTypes);
+        combinedTypes.addAll(td2.tupleTypes);
+        combinedFields.addAll(td1.tupleFields);
+        combinedFields.addAll(td2.tupleFields);
+        return new TupleDesc(
+            combinedTypes.toArray(new Type[combinedTypes.size()]), 
+            combinedFields.toArray(new String[combinedFields.size()])
+        );
     }
 
     /**
@@ -28,7 +39,8 @@ public class TupleDesc {
      * @param fieldAr array specifying the names of the fields. Note that names may be null.
      */
     public TupleDesc(Type[] typeAr, String[] fieldAr) {
-        // some code goes here
+        this.tupleTypes = new ArrayList<Type>(Arrays.asList(typeAr));
+        this.tupleFields = new ArrayList<String>(Arrays.asList(fieldAr));
     }
 
     /**
@@ -40,15 +52,15 @@ public class TupleDesc {
      *        this TupleDesc. It must contain at least one entry.
      */
     public TupleDesc(Type[] typeAr) {
-        // some code goes here
+        this.tupleTypes = new ArrayList<Type>(Arrays.asList(typeAr));
+        this.tupleFields = new ArrayList<String>(this.numFields());
     }
 
     /**
      * @return the number of fields in this TupleDesc
      */
     public int numFields() {
-        // some code goes here
-        return 0;
+        return this.tupleTypes.size();
     }
 
     /**
@@ -59,8 +71,7 @@ public class TupleDesc {
      * @throws NoSuchElementException if i is not a valid field reference.
      */
     public String getFieldName(int i) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        return this.tupleFields.get(i);
     }
 
     /**
@@ -71,8 +82,9 @@ public class TupleDesc {
      * @throws NoSuchElementException if no field with a matching name is found.
      */
     public int nameToId(String name) throws NoSuchElementException {
-        // some code goes here
-        return 0;
+        int fieldIndex = this.tupleFields.indexOf(name);
+        if (fieldIndex == -1) throw new NoSuchElementException();
+        return fieldIndex;
     }
 
     /**
@@ -83,8 +95,7 @@ public class TupleDesc {
      * @throws NoSuchElementException if i is not a valid field reference.
      */
     public Type getType(int i) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        return this.tupleTypes.get(i);
     }
 
     /**
@@ -92,8 +103,11 @@ public class TupleDesc {
      * Note that tuples from a given TupleDesc are of a fixed size.
      */
     public int getSize() {
-        // some code goes here
-        return 0;
+        int tupleSize = 0;
+        for (Type t: this.tupleTypes) {
+            tupleSize += t.getLen();
+        }
+        return tupleSize;
     }
 
     /**
@@ -105,8 +119,21 @@ public class TupleDesc {
      * @return true if the object is equal to this TupleDesc.
      */
     public boolean equals(Object o) {
-        // some code goes here
-        return false;
+        if (o == null || !(o instanceof TupleDesc)) {
+            return false;
+        }
+        
+        if (this.numFields() != ((TupleDesc)o).numFields()) {
+            return false;
+        }
+
+        for (int i = 0; i < this.numFields(); i++) {
+            if (this.getType(i) != ((TupleDesc)o).getType(i)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public int hashCode() {
@@ -122,7 +149,13 @@ public class TupleDesc {
      * @return String describing this descriptor.
      */
     public String toString() {
-        // some code goes here
-        return "";
+        String output = "";
+        for (int i = 0; i < this.numFields(); i++) {
+            output += this.getType(i).name() + "(" +  this.getFieldName(i) + ")";
+            if (i < this.numFields() - 1) {
+                output += ", ";
+            }
+        }
+        return output;
     }
 }

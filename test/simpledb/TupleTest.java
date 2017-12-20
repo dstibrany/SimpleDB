@@ -47,15 +47,40 @@ public class TupleTest extends SimpleDbTestBase {
         RecordId rid1 = new RecordId(pid1, 0);
         tup1.setRecordId(rid1);
 
-	try {
-	    assertEquals(rid1, tup1.getRecordId());
-	} catch (java.lang.UnsupportedOperationException e) {
-		//rethrow the exception with an explanation
-    	throw new UnsupportedOperationException("modifyRecordId() test failed due to " +
-    			"RecordId.equals() not being implemented.  This is not required for Lab 1, " +
-    			"but should pass when you do implement the RecordId class.");
-	}
+    	try {
+    	    assertEquals(rid1, tup1.getRecordId());
+    	} catch (java.lang.UnsupportedOperationException e) {
+    		//rethrow the exception with an explanation
+        	throw new UnsupportedOperationException("modifyRecordId() test failed due to " +
+        			"RecordId.equals() not being implemented.  This is not required for Lab 1, " +
+        			"but should pass when you do implement the RecordId class.");
+    	}
     }
+
+    /**
+     * Unit test for Tuple.numFields()
+     */
+    @Test public void numFields() {
+        int[] lengths = new int[] {1, 50, 5000};
+        for (int len: lengths) {
+            TupleDesc td = Utility.getTupleDesc(len);
+            Tuple tup = new Tuple(td);
+            assertEquals(len, tup.numFields());
+        }
+    }
+
+     /**
+     * Unit test for Tuple.toString()
+     */
+    @Test public void testToString() {
+        String testString = "5\t100\t5000\n";
+        TupleDesc td = Utility.getTupleDesc(3);
+        Tuple tup = new Tuple(td);
+        tup.setField(0, new IntField(5));
+        tup.setField(1, new IntField(100));
+        tup.setField(2, new IntField(5000));
+        assertEquals(testString, tup.toString());
+    }    
 
     /**
      * JUnit suite target

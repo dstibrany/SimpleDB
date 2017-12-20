@@ -6,6 +6,9 @@ package simpledb;
  * Field objects with the data for each field.
  */
 public class Tuple {
+    private TupleDesc td;
+    private Field[] fields;
+    private RecordId rid;
 
     /**
      * Create a new tuple with the specified schema (type).
@@ -14,15 +17,15 @@ public class Tuple {
      * instance with at least one field.
      */
     public Tuple(TupleDesc td) {
-        // some code goes here
+        this.td = td;
+        this.fields = new Field[td.numFields()];
     }
 
     /**
      * @return The TupleDesc representing the schema of this tuple.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        return this.td;
     }
 
     /**
@@ -30,8 +33,7 @@ public class Tuple {
      *   disk. May be null.
      */
     public RecordId getRecordId() {
-        // some code goes here
-        return null;
+        return this.rid;
     }
 
     /**
@@ -39,7 +41,7 @@ public class Tuple {
      * @param rid the new RecordId for this tuple.
      */
     public void setRecordId(RecordId rid) {
-        // some code goes here
+        this.rid = rid;
     }
 
     /**
@@ -49,7 +51,7 @@ public class Tuple {
      * @param f new value for the field.
      */
     public void setField(int i, Field f) {
-        // some code goes here
+        this.fields[i] = f;
     }
 
     /**
@@ -58,8 +60,14 @@ public class Tuple {
      * @param i field index to return. Must be a valid index.
      */
     public Field getField(int i) {
-        // some code goes here
-        return null;
+        return this.fields[i];
+    }
+
+    /**
+     * @return the number of fields in this Tuple
+     */
+    public int numFields() {
+        return this.fields.length;
     }
 
     /**
@@ -72,7 +80,16 @@ public class Tuple {
      * where \t is any whitespace, except newline, and \n is a newline
      */
     public String toString() {
-        // some code goes here
-        throw new UnsupportedOperationException("Implement this");
+        String output = "";
+        int fieldsSize = this.numFields();
+        
+        for (int i = 0; i < fieldsSize; i++) {
+            output += this.getField(i).toString();
+            if (i < fieldsSize - 1) {
+                output += "\t";
+            }
+        }
+        output += "\n";
+        return output;
     }
 }

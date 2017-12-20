@@ -6,7 +6,7 @@ import java.util.*;
  */
 public class TupleDesc {
     private ArrayList<Type> tupleTypes;
-    private ArrayList<String> tupleFields;
+    private ArrayList<String> tupleFieldNames;
 
     /**
      * Merge two TupleDescs into one, with td1.numFields + td2.numFields
@@ -22,8 +22,8 @@ public class TupleDesc {
         
         combinedTypes.addAll(td1.tupleTypes);
         combinedTypes.addAll(td2.tupleTypes);
-        combinedFields.addAll(td1.tupleFields);
-        combinedFields.addAll(td2.tupleFields);
+        combinedFields.addAll(td1.tupleFieldNames);
+        combinedFields.addAll(td2.tupleFieldNames);
         return new TupleDesc(
             combinedTypes.toArray(new Type[combinedTypes.size()]), 
             combinedFields.toArray(new String[combinedFields.size()])
@@ -40,7 +40,7 @@ public class TupleDesc {
      */
     public TupleDesc(Type[] typeAr, String[] fieldAr) {
         this.tupleTypes = new ArrayList<Type>(Arrays.asList(typeAr));
-        this.tupleFields = new ArrayList<String>(Arrays.asList(fieldAr));
+        this.tupleFieldNames = new ArrayList<String>(Arrays.asList(fieldAr));
     }
 
     /**
@@ -53,7 +53,7 @@ public class TupleDesc {
      */
     public TupleDesc(Type[] typeAr) {
         this.tupleTypes = new ArrayList<Type>(Arrays.asList(typeAr));
-        this.tupleFields = new ArrayList<String>(this.numFields());
+        this.tupleFieldNames = new ArrayList<String>(this.numFields());
     }
 
     /**
@@ -71,7 +71,7 @@ public class TupleDesc {
      * @throws NoSuchElementException if i is not a valid field reference.
      */
     public String getFieldName(int i) throws NoSuchElementException {
-        return this.tupleFields.get(i);
+        return this.tupleFieldNames.get(i);
     }
 
     /**
@@ -82,7 +82,7 @@ public class TupleDesc {
      * @throws NoSuchElementException if no field with a matching name is found.
      */
     public int nameToId(String name) throws NoSuchElementException {
-        int fieldIndex = this.tupleFields.indexOf(name);
+        int fieldIndex = this.tupleFieldNames.indexOf(name);
         if (fieldIndex == -1) throw new NoSuchElementException();
         return fieldIndex;
     }

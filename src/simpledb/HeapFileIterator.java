@@ -4,8 +4,6 @@ import java.util.*;
 /**
  * HeapFileIterator implements DbFileIterator and is used to
  * iterate through all tuples in a DbFile.
- * - read page 0 via buffer pool
- * - get page iterator
  */
 public class HeapFileIterator implements DbFileIterator {
     private HeapFile heapFile;

@@ -7,6 +7,9 @@ import java.util.*;
  * disk).
  */
 public class SeqScan implements DbIterator {
+    private TransactionId tid;
+    private int tableid;
+    private String tableAlias;
 
     /**
      * Creates a sequential scan over the specified table as a part of the
@@ -21,7 +24,9 @@ public class SeqScan implements DbIterator {
      *         name can be null.fieldName, tableAlias.null, or null.null).
      */
     public SeqScan(TransactionId tid, int tableid, String tableAlias) {
-        // some code goes here
+        this.tid = tid;
+        this.tableid = tableid;
+        this.tableAlias = tableAlias;
     }
 
     public void open()

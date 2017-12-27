@@ -30,7 +30,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         this.numPages = numPages;
-        HashMap<PageId, Page> pool = new HashMap<PageId, Page>();
+        this.pagePool = new HashMap<PageId, Page>();
     }
 
     /**
@@ -49,8 +49,7 @@ public class BufferPool {
      * @param perm the requested permissions on the page
      */
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
-        throws TransactionAbortedException, DbException {
-        
+        throws TransactionAbortedException, DbException, IOException {
         if (this.pagePool.containsKey(pid)) {
             return this.pagePool.get(pid);
         }

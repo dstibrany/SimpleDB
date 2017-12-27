@@ -5,7 +5,6 @@ package simpledb;
  * specific table.
  */
 public class RecordId {
-
     private PageId pid;
     private int tupleNo;
 

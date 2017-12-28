@@ -12,6 +12,7 @@
     <property name="doc" location="javadoc"/>
     <property name="dist" location="dist"/>
     <property name="jarfile" location="${dist}/${ant.project.name}.jar"/>
+    <property name="testfile" location="${dist}/testfile.jar"/>
     <property name="compile.debug" value="true"/>
     <property name="test.reports" location="testreport"/>
 
@@ -77,6 +78,18 @@
         </javadoc>
     </target>
 
+    <target name="testfile" depends="compile" description="Build jar">
+        <mkdir dir="${dist}"/>
+        <jar jarfile="${testfile}" basedir="${build.src}">
+            <manifest>
+                <attribute name="Main-Class" value="simpledb.Test"/>
+                <attribute name="Class-Path" value="../lib/zql.jar ../lib/jline-0.9.94.jar"/>
+            </manifest>
+            <!-- Merge library jars into final jar file -->
+            <!--<zipgroupfileset refid="lib.jars"/>-->
+        </jar>
+    </target>
+
     <target name="dist" depends="compile" description="Build jar">
         <mkdir dir="${dist}"/>
         <jar jarfile="${jarfile}" basedir="${build.src}">
@@ -88,6 +101,7 @@
             <!--<zipgroupfileset refid="lib.jars"/>-->
         </jar>
     </target>
+
 
     <target name="clean" description="Remove build and dist directories">
         <delete dir="${build}"/>

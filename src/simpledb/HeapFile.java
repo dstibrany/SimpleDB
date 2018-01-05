@@ -62,23 +62,22 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     // Using the file handle, we read a page of bytes at a specific offset
     // then create a new HeapPage using that data, and return it.
-    public Page readPage(PageId pid) throws IOException {
+    public Page readPage(PageId pid) throws NoSuchElementException {
         int pageSize = Database.getBufferPool().PAGE_SIZE;
         long byteOffset = pid.pageno() * pageSize;
         byte[] data = new byte[pageSize];
-        int bytesRead = 0;
+
+        if (pid.pageno() > this.numPages()) {
+            throw new NoSuchElementException();
+        }
 
         try {
             RandomAccessFile randomAccessFile = new RandomAccessFile(this.file, "r");
             randomAccessFile.seek(byteOffset);
-            bytesRead = randomAccessFile.read(data);
-        } catch (FileNotFoundException e) {
-           e.printStackTrace();
-        } finally {
-            if (bytesRead != pageSize) {
-                throw new IllegalArgumentException("This page does not exist in the file");
-            }
+            randomAccessFile.read(data);
             return new HeapPage((HeapPageId) pid, data);
+        } catch (IOException e) {
+            throw new NoSuchElementException();
         }
     }
 

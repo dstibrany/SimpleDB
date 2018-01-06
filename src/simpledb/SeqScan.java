@@ -44,6 +44,7 @@ public class SeqScan implements DbIterator {
      * @return the TupleDesc with field names from the underlying HeapFile,
      * prefixed with the tableAlias string from the constructor.
      */
+    // TODO implement this
     public TupleDesc getTupleDesc() {
         // TupleDesc originalTd = this.file.getTupleDesc();
         // TupleDesc newTd = new TupleDesc
@@ -65,7 +66,6 @@ public class SeqScan implements DbIterator {
 
     public void rewind()
         throws DbException, NoSuchElementException, TransactionAbortedException {
-        this.close();
-        this.open();
+        this.fileIterator.rewind();
     }
 }

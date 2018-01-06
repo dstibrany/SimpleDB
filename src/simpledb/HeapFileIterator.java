@@ -41,9 +41,9 @@ public class HeapFileIterator extends AbstractDbFileIterator {
      * Closes the iterator.
      */
     public void close() {
+        super.close();
         this.nextPageNo = 0;
         this.pageIterator = null;
-        super.close();
     }
 
     protected Tuple readNext()

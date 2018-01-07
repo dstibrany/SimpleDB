@@ -17,8 +17,8 @@ public class TupleDesc {
      * @return the new TupleDesc
      */
     public static TupleDesc combine(TupleDesc td1, TupleDesc td2) {
-        ArrayList<Type> combinedTypes = new ArrayList<Type>();
-        ArrayList<String> combinedFields = new ArrayList<String>();
+        ArrayList<Type> combinedTypes = new ArrayList<>();
+        ArrayList<String> combinedFields = new ArrayList<>();
         
         combinedTypes.addAll(td1.tupleTypes);
         combinedTypes.addAll(td2.tupleTypes);

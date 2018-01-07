@@ -5,6 +5,10 @@ import java.util.*;
  * The Join operator implements the relational join operation.
  */
 public class Join extends AbstractDbIterator {
+    private JoinPredicate joinPredicate;
+    private DbIterator child1;
+    private DbIterator child2;
+    private Tuple currentTuple;
 
     /**
      * Constructor.  Accepts to children to join and the predicate
@@ -15,28 +19,36 @@ public class Join extends AbstractDbIterator {
      * @param child2 Iterator for the right(inner) relation to join
      */
     public Join(JoinPredicate p, DbIterator child1, DbIterator child2) {
-        // some code goes here
+        this.joinPredicate = p;
+        this.child1 = child1;
+        this.child2 = child2;
     }
 
     /**
      * @see simpledb.TupleDesc#combine(TupleDesc, TupleDesc) for possible implementation logic.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        return TupleDesc.combine(this.child1.getTupleDesc(), this.child2.getTupleDesc());
     }
 
     public void open()
         throws DbException, NoSuchElementException, TransactionAbortedException {
-        // some code goes here
+        this.child1.open();
+        this.child2.open();
+        if (!this.checkAndSetNextTuple(child1)) {
+            throw new NoSuchElementException();
+        }
     }
 
     public void close() {
-        // some code goes here
+        super.close();
+        this.child1.close();
+        this.child2.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
+        this.child1.rewind();
+        this.child2.rewind();
     }
 
     /**
@@ -59,7 +71,56 @@ public class Join extends AbstractDbIterator {
      * @see JoinPredicate#filter
      */
     protected Tuple readNext() throws TransactionAbortedException, DbException {
-        // some code goes here
+        do {
+            Tuple t1 = this.currentTuple;
+            while (this.child2.hasNext()) {
+                Tuple t2 = this.child2.next();
+                if (this.joinPredicate.filter(t1, t2)) {
+                    return this.joinTuples(t1, t2);
+                }
+            }
+            this.child2.rewind();
+        } while (this.checkAndSetNextTuple(child1));
+
         return null;
+    }
+
+    /**
+     * Creates a new tuple from two existing tuples.
+     * @param t1 the first Tuple to join
+     * @param t2 the second Tuple to join with the first
+     * @return the joined Tuple
+     */
+    private Tuple joinTuples(Tuple t1, Tuple t2) {
+        Tuple joinedTuple = new Tuple(this.getTupleDesc());
+
+        for (int i = 0; i < t1.numFields(); i++) {
+            joinedTuple.setField(i, t1.getField(i));
+        }
+
+        for (int j = 0; j < t2.numFields(); j++) {
+            joinedTuple.setField(j + t1.numFields(), t2.getField(j));
+        }
+
+        return joinedTuple;
+    }
+
+    /**
+     * We need to keep track of the current tuple in the left-side of the join loop in order
+     * to continue from where we've left off from the last returned join tuple in readNext()
+     *
+     * @param child the iterator who's next tuple will be checked and set
+     * @return true if the iterator has a next tuple
+     * @throws TransactionAbortedException
+     * @throws DbException
+     */
+    private boolean checkAndSetNextTuple(DbIterator child)
+            throws TransactionAbortedException, DbException {
+        if (child.hasNext()) {
+            this.currentTuple = child.next();
+            return true;
+        } else {
+            return false;
+        }
     }
 }

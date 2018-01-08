@@ -53,7 +53,7 @@ public class TupleDesc {
      */
     public TupleDesc(Type[] typeAr) {
         this.tupleTypes = new ArrayList<Type>(Arrays.asList(typeAr));
-        this.tupleFieldNames = new ArrayList<String>(this.numFields());
+        this.tupleFieldNames = new ArrayList<String>(Arrays.asList(new String[this.numFields()]));
     }
 
     /**

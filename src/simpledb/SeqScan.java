@@ -29,7 +29,7 @@ public class SeqScan implements DbIterator {
         this.tid = tid;
         this.tableid = tableid;
         this.tableAlias = tableAlias;
-        this.file = Database.getCatalog().getDbFile(tableid);
+        this.file = Database.getCatalog().getDbFile(this.tableid);
         this.fileIterator = this.file.iterator(tid);
     }
 
@@ -44,11 +44,16 @@ public class SeqScan implements DbIterator {
      * @return the TupleDesc with field names from the underlying HeapFile,
      * prefixed with the tableAlias string from the constructor.
      */
-    // TODO implement this
     public TupleDesc getTupleDesc() {
-        // TupleDesc originalTd = this.file.getTupleDesc();
-        // TupleDesc newTd = new TupleDesc
-        return null;
+        TupleDesc originalTd = this.file.getTupleDesc();
+        Type[] newTdTypeAr = new Type[originalTd.numFields()];
+        String[] newTdFieldAr = new String[originalTd.numFields()];
+
+        for (int i = 0; i < originalTd.numFields(); i++) {
+            newTdTypeAr[i] = originalTd.getType(i);
+            newTdFieldAr[i] = this.tableAlias + "." + originalTd.getFieldName(i);
+        }
+        return new TupleDesc (newTdTypeAr, newTdFieldAr);
     }
 
     public boolean hasNext() throws TransactionAbortedException, DbException {

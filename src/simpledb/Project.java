@@ -18,7 +18,7 @@ public class Project extends AbstractDbIterator {
      * @param typesList the types of the fields in the final projection
      * @param child The child operator
      */
-    public Project(ArrayList<Integer> fieldList, ArrayList<Type> typesList,  DbIterator child) {
+    public Project(ArrayList<Integer> fieldList, ArrayList<Type> typesList, DbIterator child) {
         this.child = child;
         outFieldIds = fieldList;
         String[] fieldAr = new String[fieldList.size()];

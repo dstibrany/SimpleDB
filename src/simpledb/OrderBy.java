@@ -19,7 +19,7 @@ public class OrderBy extends AbstractDbIterator {
      * @param asc true if the sort order is ascending.
      * @param child the tuples to sort.
      */
-    public OrderBy(int orderbyField,  boolean asc, DbIterator child) {
+    public OrderBy(int orderbyField, boolean asc, DbIterator child) {
         this.child = child;
         td= child.getTupleDesc();
         this.orderByField = orderbyField;
@@ -69,7 +69,7 @@ public class OrderBy extends AbstractDbIterator {
 
      public TupleComparator(int field, boolean asc) {
          this.field = field;
-     this.asc = asc;
+         this.asc = asc;
      }
 
      public int compare(Tuple o1, Tuple o2) {

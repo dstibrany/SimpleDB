@@ -14,11 +14,14 @@ import simpledb.systemtest.SimpleDbTestBase;
 public class IntAggregatorTest extends SimpleDbTestBase {
 
   int width1 = 2;
+  int widthNoGroup = 1;
   DbIterator scan1;
   int[][] sum = null;
   int[][] min = null;
   int[][] max = null;
   int[][] avg = null;
+  int[][] count = null;
+  int[][] countNoGrouping = null;
 
   /**
    * Initialize each unit test
@@ -58,8 +61,28 @@ public class IntAggregatorTest extends SimpleDbTestBase {
     this.avg = new int[][] {
       { 1, 2 },
       { 1, 3 },
-      { 1, 4 },
-      { 1, 4, 3, 2 }
+      { 1, 3 },
+      { 1, 3, 3, 2 },
+      { 1, 3, 3, 3 },
+      { 1, 3, 3, 3 },
+      { 1, 3, 3, 3, 5, 7},
+    };
+
+    this.count = new int[][] {
+        { 1, 1 },
+        { 1, 2 },
+        { 1, 3 },
+        { 1, 3, 3, 1 },
+        { 1, 3, 3, 2 },
+        { 1, 3, 3, 3 },
+        { 1, 3, 3, 3, 5, 1 }
+    };
+
+    this.countNoGrouping = new int[][] {
+        { 1 },
+        { 2 },
+        { 3 },
+        { 4 }
     };
   }
 
@@ -119,6 +142,36 @@ public class IntAggregatorTest extends SimpleDbTestBase {
       agg.merge(scan1.next());
       it = agg.iterator();
       TestUtil.matchAllTuples(TestUtil.createTupleList(width1, step), it);
+    }
+  }
+
+  /**
+   * Test IntAggregator.merge() and iterator() over a count
+   */
+  @Test public void mergeCount() throws Exception {
+    scan1.open();
+    IntAggregator agg = new IntAggregator(0, Type.INT_TYPE, 1, Aggregator.Op.COUNT);
+
+    DbIterator it;
+    for (int[] step : count) {
+      agg.merge(scan1.next());
+      it = agg.iterator();
+      TestUtil.matchAllTuples(TestUtil.createTupleList(width1, step), it);
+    }
+  }
+
+  /**
+   * Test IntAggregator.merge() and iterator() over a count with no grouping
+   */
+  @Test public void mergeCountNoGrouping() throws Exception {
+    scan1.open();
+    IntAggregator agg = new IntAggregator(Aggregator.NO_GROUPING, null, 1, Aggregator.Op.COUNT);
+
+    DbIterator it;
+    for (int[] step : countNoGrouping) {
+      agg.merge(scan1.next());
+      it = agg.iterator();
+      TestUtil.matchAllTuples(TestUtil.createTupleList(widthNoGroup, step), it);
     }
   }
 

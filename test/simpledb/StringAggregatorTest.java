@@ -12,8 +12,10 @@ import junit.framework.JUnit4TestAdapter;
 public class StringAggregatorTest extends SimpleDbTestBase {
 
   int width1 = 2;
+  int widthNoGrouping = 1;
   DbIterator scan1;
   int[][] count = null;
+  int[][] countNoGrouping = null;
 
   /**
    * Initialize each unit test
@@ -36,6 +38,22 @@ public class StringAggregatorTest extends SimpleDbTestBase {
       { 1, 3, 3, 1 }
     };
 
+    this.countNoGrouping = new int[][] {
+            { 1 },
+            { 2 },
+            { 3 },
+            { 4 },
+            { 5 },
+            { 6 }
+    };
+  }
+
+  /**
+   * Test that new StringAggregator throws IllegalArgumentException if the aggregation operator is not COUNT
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void StringAggregatorExceptionOnIllegalOperator() throws Exception {
+    new StringAggregator(0, Type.INT_TYPE, 1, Aggregator.Op.AVG);
   }
 
   /**
@@ -49,6 +67,20 @@ public class StringAggregatorTest extends SimpleDbTestBase {
       agg.merge(scan1.next());
       DbIterator it = agg.iterator();
       TestUtil.matchAllTuples(TestUtil.createTupleList(width1, step), it);
+    }
+  }
+
+  /**
+   * Test String.merge() and iterator() over a COUNT with no grouping
+   */
+  @Test public void mergeCountNoGrouping() throws Exception {
+    scan1.open();
+    StringAggregator agg = new StringAggregator(Aggregator.NO_GROUPING, null, 1, Aggregator.Op.COUNT);
+
+    for (int[] step : countNoGrouping) {
+      agg.merge(scan1.next());
+      DbIterator it = agg.iterator();
+      TestUtil.matchAllTuples(TestUtil.createTupleList(widthNoGrouping, step), it);
     }
   }
 

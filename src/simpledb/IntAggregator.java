@@ -40,67 +40,8 @@ public class IntAggregator implements Aggregator {
         int updatedCount = getUpdatedCount(tup);
         groupCounts.put(groupByField, updatedCount);
 
-        int updatedAggregate = getUpdatedAggregate(tup, updatedCount);
+        int updatedAggregate = getUpdatedAggregate(tup);
         groupAggregates.put(groupByField, updatedAggregate);
-    }
-
-    /**
-     * Returns the updated count aggregate (+1 for each tuple we've seen in a particular group)
-     * @param tup The tuple used to update the current count
-     * @return the updated count
-     */
-    private int getUpdatedCount(Tuple tup) {
-        Field groupByField = getGroupByField(tup);
-        int currentCount = groupCounts.getOrDefault(groupByField, 0);
-        return ++currentCount;
-    }
-
-    /**
-     * Returns the updated aggregate value, by adding the tuple aggregate value to the group aggregate value
-     * @param tup The current tuple whose aggregate value we will merge into the group
-     * @param currentCount The number of tuples we have seen in this group
-     * @return the new aggregate value
-     */
-    private int getUpdatedAggregate(Tuple tup, int currentCount) {
-        IntField tupleAggregate = (IntField)tup.getField((this.aggField));
-        Field groupByField = getGroupByField(tup);
-        Integer defaultValue = (this.aggOp == Op.MIN || this.aggOp == Op.MAX) ? tupleAggregate.getValue() : 0;
-        Integer currentAggregateValue = groupAggregates.getOrDefault(groupByField, defaultValue);
-        Integer updatedAggregateValue = currentAggregateValue;
-
-        switch (this.aggOp) {
-            case AVG:
-                updatedAggregateValue = (currentAggregateValue + tupleAggregate.getValue()) / currentCount;
-                break;
-            case MAX:
-                updatedAggregateValue = Math.max(currentAggregateValue, tupleAggregate.getValue());
-                break;
-            case MIN:
-                updatedAggregateValue = Math.min(currentAggregateValue, tupleAggregate.getValue());
-                break;
-            case SUM:
-                updatedAggregateValue = currentAggregateValue + tupleAggregate.getValue();
-                break;
-            case COUNT:
-                updatedAggregateValue = currentCount;
-                break;
-        }
-        return updatedAggregateValue;
-    }
-
-    /**
-     * Returns the groupby Field of the current tuple, or null if there is no grouping
-     * @param tup The tuple whose groupby Field we wish to return
-     * @return the Field used in the group by clause, or null if there is no grouping
-     */
-    private Field getGroupByField(Tuple tup) {
-        Field groupByField;
-        if (this.gbField == Aggregator.NO_GROUPING) {
-            groupByField = null;
-        } else {
-            groupByField = tup.getField(this.gbField);
-        }
-        return groupByField;
     }
 
     /**
@@ -124,17 +65,102 @@ public class IntAggregator implements Aggregator {
 
         for (HashMap.Entry<Field, Integer> groupAggregateEntry: this.groupAggregates.entrySet()) {
             Tuple groupAggregateTuple = new Tuple(groupAggregateTd);
+            Integer finalAggregateValue= this.getFinalAggregateValue(
+                    groupCounts.get(groupAggregateEntry.getKey()),
+                    groupAggregateEntry.getValue()
+            );
 
             // If there is a grouping, we return a tuple in the form {groupByField, aggregateVal}
             // If there is no grouping, we return a tuple in the form {aggregateVal}
             if (hasGrouping) {
                 groupAggregateTuple.setField(0, groupAggregateEntry.getKey());
-                groupAggregateTuple.setField(1, new IntField(groupAggregateEntry.getValue()));
+                groupAggregateTuple.setField(1, new IntField(finalAggregateValue));
             } else {
-                groupAggregateTuple.setField(0, new IntField(groupAggregateEntry.getValue()));
+                groupAggregateTuple.setField(0, new IntField(finalAggregateValue));
             }
             tuples.add(groupAggregateTuple);
         }
         return new TupleIterator(groupAggregateTd, tuples);
     }
+
+    /**
+     * Returns the updated count aggregate (+1 for each tuple we've seen in a particular group)
+     * @param tup The tuple used to update the current count
+     * @return the updated count
+     */
+    private int getUpdatedCount(Tuple tup) {
+        Field groupByField = getGroupByField(tup);
+        int currentCount = groupCounts.getOrDefault(groupByField, 0);
+        return ++currentCount;
+    }
+
+    /**
+     * Returns the updated aggregate value, by adding the tuple aggregate value to the group aggregate value
+     * @param tup The current tuple whose aggregate value we will merge into the group
+     * @return the new aggregate value
+     */
+    private int getUpdatedAggregate(Tuple tup) {
+        IntField tupleAggregate = (IntField)tup.getField((this.aggField));
+        Field groupByField = getGroupByField(tup);
+        Integer defaultValue = (this.aggOp == Op.MIN || this.aggOp == Op.MAX) ? tupleAggregate.getValue() : 0;
+        Integer currentAggregateValue = groupAggregates.getOrDefault(groupByField, defaultValue);
+        Integer updatedAggregateValue = currentAggregateValue;
+
+        switch (this.aggOp) {
+            case AVG:
+                updatedAggregateValue = currentAggregateValue + tupleAggregate.getValue();
+                break;
+            case MAX:
+                updatedAggregateValue = Math.max(currentAggregateValue, tupleAggregate.getValue());
+                break;
+            case MIN:
+                updatedAggregateValue = Math.min(currentAggregateValue, tupleAggregate.getValue());
+                break;
+            case SUM:
+                updatedAggregateValue = currentAggregateValue + tupleAggregate.getValue();
+                break;
+            case COUNT:
+                // this is handled by groupCount
+                break;
+        }
+        return updatedAggregateValue;
+    }
+
+    /**
+     * Returns the groupby Field of the current tuple, or null if there is no grouping
+     * @param tup The tuple whose groupby Field we wish to return
+     * @return the Field used in the group by clause, or null if there is no grouping
+     */
+    private Field getGroupByField(Tuple tup) {
+        Field groupByField;
+        if (this.gbField == Aggregator.NO_GROUPING) {
+            groupByField = null;
+        } else {
+            groupByField = tup.getField(this.gbField);
+        }
+        return groupByField;
+    }
+
+    /**
+     * Calculates the final aggregate value for AVG and COUNT; returns the passed in aggregateValue otherwise
+     * @param totalCount The count of tuples in the group
+     * @param aggregateValue The aggregate value for the group, which for AVG will need to be divided by count
+     * @return The final aggregate value for the group
+     */
+    private Integer getFinalAggregateValue(Integer totalCount, Integer aggregateValue) {
+        Integer finalAggregateValue;
+        switch (this.aggOp) {
+            case AVG:
+                finalAggregateValue = aggregateValue / totalCount;
+                break;
+            case COUNT:
+                finalAggregateValue = totalCount;
+                break;
+            default:
+                finalAggregateValue = aggregateValue;
+                break;
+        }
+        return finalAggregateValue;
+    }
+
 }

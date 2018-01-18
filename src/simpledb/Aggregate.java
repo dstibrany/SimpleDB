@@ -8,6 +8,12 @@ import java.util.*;
  * by a single column.
  */
 public class Aggregate extends AbstractDbIterator {
+    private DbIterator child;
+    private int aggFieldIdx;
+    private int groupByFieldIdx;
+    private Aggregator.Op aggOp;
+    private Aggregator aggregator;
+    private DbIterator aggregateIterator;
 
     /**
      * Constructor.  
@@ -22,7 +28,12 @@ public class Aggregate extends AbstractDbIterator {
      * @param aop The aggregation operator to use
      */
     public Aggregate(DbIterator child, int afield, int gfield, Aggregator.Op aop) {
-        // some code goes here
+        this.child = child;
+        this.aggFieldIdx = afield;
+        this.groupByFieldIdx = gfield;
+        this.aggOp = aop;
+        this.aggregateIterator = null;
+        this.aggregator = null;
     }
 
     public static String aggName(Aggregator.Op aop) {
@@ -43,7 +54,12 @@ public class Aggregate extends AbstractDbIterator {
 
     public void open()
         throws NoSuchElementException, DbException, TransactionAbortedException {
-        // some code goes here
+        if (this.aggregateIterator == null) {
+            this.aggregator = this.createAggregator(this.child.getTupleDesc());
+            this.populateAggregator();
+            this.aggregateIterator = this.aggregator.iterator();
+        }
+        this.aggregateIterator.open();
     }
 
     /**
@@ -55,12 +71,48 @@ public class Aggregate extends AbstractDbIterator {
      * Should return null if there are no more tuples.
      */
     protected Tuple readNext() throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        if (this.aggregateIterator.hasNext()) {
+            return this.aggregateIterator.next();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Creates an aggregator based on the Type of the aggregate field
+     * @param td The tuple descriptor of the child iterator
+     * @return an Aggregator of a specific type (e.g. IntAggregator)
+     */
+    private Aggregator createAggregator(TupleDesc td) throws DbException {
+        Type groupByFieldType = null;
+        if (this.groupByFieldIdx != Aggregator.NO_GROUPING) {
+            groupByFieldType = td.getType(this.groupByFieldIdx);
+        }
+
+        if (td.getType(this.aggFieldIdx) == Type.INT_TYPE) {
+            return new IntAggregator(this.groupByFieldIdx, groupByFieldType, this.aggFieldIdx, this.aggOp);
+        } else if (td.getType(this.aggFieldIdx) == Type.STRING_TYPE) {
+            return new StringAggregator(this.groupByFieldIdx, groupByFieldType, this.aggFieldIdx, this.aggOp);
+        } else {
+            throw new DbException("This type of iterator is not supported");
+        }
+    }
+
+    /**
+     * Merge all tuples into our aggregator and return an iterator over the group aggregate results
+     */
+    private void populateAggregator() throws DbException, TransactionAbortedException {
+        this.child.open();
+
+        while (this.child.hasNext()) {
+            Tuple nextTuple = this.child.next();
+            this.aggregator.merge(nextTuple);
+        }
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
+        this.aggregateIterator = this.aggregator.iterator();
+        this.aggregateIterator.open();
     }
 
     /**
@@ -75,11 +127,34 @@ public class Aggregate extends AbstractDbIterator {
      * of the child iterator. 
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        String aggFieldName = Aggregate.aggName(this.aggOp) + " (" +
+                this.child.getTupleDesc().getFieldName(this.aggFieldIdx) + ")";
+
+        if (this.groupByFieldIdx == Aggregator.NO_GROUPING) {
+            return new TupleDesc(
+                    new Type[]{this.child.getTupleDesc().getType(this.aggFieldIdx)},
+                    new String[]{aggFieldName}
+            );
+        } else {
+            return new TupleDesc(
+                    new Type[]{
+                            this.child.getTupleDesc().getType(this.groupByFieldIdx),
+                            this.child.getTupleDesc().getType(this.aggFieldIdx)
+                    },
+                    new String[]{
+                            this.child.getTupleDesc().getFieldName(this.groupByFieldIdx),
+                            aggFieldName
+                    }
+            );
+        }
+
     }
 
     public void close() {
-        // some code goes here
+        super.close();
+        this.child.close();
+        this.aggregateIterator.close();
+        this.aggregateIterator = null;
+        this.aggregator = null;
     }
 }

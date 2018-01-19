@@ -16,6 +16,7 @@ public class HeapPage implements Page {
     private byte[] header;
     private Tuple[] tuples;
     private int numSlots;
+    private TransactionId dirtierTid;
 
     private byte[] oldData;
 
@@ -39,6 +40,7 @@ public class HeapPage implements Page {
         this.pid = id;
         this.td = Database.getCatalog().getTupleDesc(id.getTableId());
         this.numSlots = getNumTuples();
+        this.dirtierTid = null;
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
 
         // allocate and read the header slots of this page
@@ -65,7 +67,7 @@ public class HeapPage implements Page {
     */
     private int getNumTuples() {
         int tupleSize = this.td.getSize();    
-        int bufferPoolPageSize = Database.getBufferPool().PAGE_SIZE;
+        int bufferPoolPageSize = BufferPool.PAGE_SIZE;
         return (int) Math.floor((bufferPoolPageSize * 8.0) / (tupleSize * 8.0 + 1.0));
     }
 
@@ -214,7 +216,6 @@ public class HeapPage implements Page {
      * this method to the HeapPage constructor will create a HeapPage with
      * no valid tuples in it.
      *
-     * @param tableid The id of the table that this empty page will belong to.
      * @return The returned ByteArray.
      */
     public static byte[] createEmptyPageData() {
@@ -230,8 +231,13 @@ public class HeapPage implements Page {
      * @param t The tuple to delete
      */
     public void deleteTuple(Tuple t) throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        RecordId rid = t.getRecordId();
+        if (rid == null) throw new DbException("Tuple has already been deleted");
+        if (!rid.getPageId().equals(this.pid)) throw new DbException("Tuple does not exist on this page");
+        if (!this.getSlot(rid.tupleno())) throw new DbException("Tuple slot is already empty");
+
+        this.setSlot(rid.tupleno(), false);
+        t.setRecordId(null);
     }
 
     /**
@@ -242,8 +248,22 @@ public class HeapPage implements Page {
      * @param t The tuple to add.
      */
     public void addTuple(Tuple t) throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        if (this.getNumEmptySlots() == 0) throw new DbException("The page is full");
+        if (!t.getTupleDesc().equals(this.td)) {
+            throw new DbException("The tuple's descriptor does match the page's tuple descriptor");
+        }
+
+        // find an empty slot
+        int emptySlot = -1;
+        for (int i = 0; i < this.numSlots; i++) {
+            if (!this.getSlot(i)) {
+                emptySlot = i;
+                break;
+            }
+        }
+        this.setSlot(emptySlot, true);
+        t.setRecordId(new RecordId(this.pid, emptySlot));
+        this.tuples[emptySlot] = t;
     }
 
     /**
@@ -251,17 +271,18 @@ public class HeapPage implements Page {
      * that did the dirtying
      */
     public void markDirty(boolean dirty, TransactionId tid) {
-        // some code goes here
-	// not necessary for lab1
+        if (dirty) {
+            this.dirtierTid = tid;
+        } else {
+            this.dirtierTid = null;
+        }
     }
 
     /**
      * Returns the tid of the transaction that last dirtied this page, or null if the page is not dirty
      */
     public TransactionId isDirty() {
-        // some code goes here
-	// Not necessary for lab1
-        return null;
+        return this.dirtierTid;
     }
 
     /**
@@ -281,16 +302,18 @@ public class HeapPage implements Page {
      * Returns true if associated slot on this page is filled.
      */
     public boolean getSlot(int i) {
-        BitSet headerBitsBigEndian = BitSet.valueOf(this.header);
-        return headerBitsBigEndian.get(i);
+        return (this.header[i / 8] & (1 << (i % 8))) != 0;
     }
 
     /**
      * Abstraction to fill or clear a slot on this page.
      */
     private void setSlot(int i, boolean value) {
-        // some code goes here
-        // not necessary for lab1
+        if (value) {
+            this.header[i / 8] |= (1 << (i % 8));
+        } else {
+            this.header[i / 8] &= ~(1 << (i % 8));
+        }
     }
 
     /**

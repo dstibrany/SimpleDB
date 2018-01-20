@@ -254,16 +254,16 @@ public class HeapPage implements Page {
         }
 
         // find an empty slot
-        int emptySlot = -1;
+    int emptySlotIdx = -1;
         for (int i = 0; i < this.numSlots; i++) {
             if (!this.getSlot(i)) {
-                emptySlot = i;
+                emptySlotIdx = i;
                 break;
             }
         }
-        this.setSlot(emptySlot, true);
-        t.setRecordId(new RecordId(this.pid, emptySlot));
-        this.tuples[emptySlot] = t;
+        this.setSlot(emptySlotIdx, true);
+        t.setRecordId(new RecordId(this.pid, emptySlotIdx));
+        this.tuples[emptySlotIdx] = t;
     }
 
     /**
@@ -274,6 +274,7 @@ public class HeapPage implements Page {
         if (dirty) {
             this.dirtierTid = tid;
         } else {
+
             this.dirtierTid = null;
         }
     }

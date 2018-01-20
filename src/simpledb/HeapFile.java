@@ -17,6 +17,7 @@ public class HeapFile implements DbFile {
     private TupleDesc td;
     private File file;
     private int tableid;
+    private int numPages;
     
     /**
      * Constructs a heap file backed by the specified file.
@@ -27,6 +28,7 @@ public class HeapFile implements DbFile {
         this.td = td;
         this.file = f;
         this.tableid = f.getAbsoluteFile().hashCode();
+        this.numPages = (int) f.length() / BufferPool.PAGE_SIZE;
     }
 
     /**
@@ -72,10 +74,17 @@ public class HeapFile implements DbFile {
         }
 
         try {
-            RandomAccessFile randomAccessFile = new RandomAccessFile(this.file, "r");
-            randomAccessFile.seek(byteOffset);
-            randomAccessFile.read(data);
-            return new HeapPage((HeapPageId) pid, data);
+            // add a new blank page to the HeapFile
+            if (pid.pageno() == this.numPages()) {
+                this.numPages++;
+                return new HeapPage((HeapPageId) pid, HeapPage.createEmptyPageData());
+            // read the existing page from disk
+            } else {
+                RandomAccessFile randomAccessFile = new RandomAccessFile(this.file, "r");
+                randomAccessFile.seek(byteOffset);
+                randomAccessFile.read(data);
+                return new HeapPage((HeapPageId) pid, data);
+            }
         } catch (IOException e) {
             throw new NoSuchElementException();
         }
@@ -91,25 +100,48 @@ public class HeapFile implements DbFile {
      * Returns the number of pages in this HeapFile.
      */
     public int numPages() {
-        int pageSize = Database.getBufferPool().PAGE_SIZE;
-        int fileSize = (int) this.file.length();
-        return fileSize / pageSize;
+        return this.numPages;
     }
 
     // see DbFile.java for javadocs
     public ArrayList<Page> addTuple(TransactionId tid, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for lab1
+        ArrayList<Page> modifiedPages = new ArrayList<>();
+        HeapPage pageWithSpace = null;
+
+        // find a page that has an space for a new tuple
+        for (int currentPageNo = 0; currentPageNo < this.numPages(); currentPageNo++) {
+            HeapPageId pageId = new HeapPageId(this.getId(), currentPageNo);
+            HeapPage currentPage = (HeapPage)Database.getBufferPool().getPage(tid, pageId, Permissions.READ_WRITE);
+            if (currentPage.getNumEmptySlots() > 0) {
+                pageWithSpace = currentPage;
+                break;
+            }
+        }
+
+        // add tuple to a page with space
+        if (pageWithSpace != null) {
+            pageWithSpace.addTuple(t);
+            modifiedPages.add(pageWithSpace);
+        //  create a new blank page and add the tuple
+        } else {
+            HeapPageId newPageId = new HeapPageId(this.getId(), this.numPages());
+            HeapPage newPage = (HeapPage)Database.getBufferPool().getPage(tid, newPageId, Permissions.READ_WRITE);
+            newPage.addTuple(t);
+            modifiedPages.add(newPage);
+        }
+
+        return modifiedPages;
     }
 
     // see DbFile.java for javadocs
     public Page deleteTuple(TransactionId tid, Tuple t)
         throws DbException, TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for lab1
+        RecordId rid = t.getRecordId();
+        PageId pid = rid.getPageId();
+        HeapPage pageToDeleteFrom = (HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
+        pageToDeleteFrom.deleteTuple(t);
+        return pageToDeleteFrom;
     }
 
     // see DbFile.java for javadocs

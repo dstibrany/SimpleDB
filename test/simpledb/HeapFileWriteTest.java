@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 import junit.framework.JUnit4TestAdapter;
+import simpledb.systemtest.SystemTestUtil;
 
 public class HeapFileWriteTest extends TestUtil.CreateHeapFile {
     private TransactionId tid;
@@ -20,6 +21,31 @@ public class HeapFileWriteTest extends TestUtil.CreateHeapFile {
 
     @After public void tearDown() throws Exception {
         Database.getBufferPool().transactionComplete(tid);
+    }
+
+    /**
+     * Unit test for HeapFile.deleteTuple()
+     */
+    @Test public void deleteTuple() throws Exception {
+        int numRows = 20;
+        HeapFile hf = SystemTestUtil.createRandomHeapFile(2, numRows, null, null);
+
+        DbFileIterator it = hf.iterator(tid);
+        it.open();
+        while (it.hasNext()) {
+            Tuple tuple = it.next();
+            hf.deleteTuple(tid, tuple);
+        }
+
+        it.rewind();
+
+        int tupleCountAfterDelete = 0;
+        while (it.hasNext()) {
+            tupleCountAfterDelete++;
+            it.next();
+        }
+
+        assertEquals(0, tupleCountAfterDelete);
     }
 
     /**

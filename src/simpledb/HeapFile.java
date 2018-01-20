@@ -139,8 +139,10 @@ public class HeapFile implements DbFile {
         throws DbException, TransactionAbortedException {
         RecordId rid = t.getRecordId();
         PageId pid = rid.getPageId();
+
         HeapPage pageToDeleteFrom = (HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
         pageToDeleteFrom.deleteTuple(t);
+
         return pageToDeleteFrom;
     }
 

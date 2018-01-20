@@ -1,6 +1,8 @@
 package simpledb;
 
+import javax.xml.crypto.Data;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -125,8 +127,11 @@ public class BufferPool {
      */
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for lab1
+        DbFile file = Database.getCatalog().getDbFile(tableId);
+        ArrayList<Page> dirtiedPages = file.addTuple(tid, t);
+        for (Page dirtiedPage: dirtiedPages) {
+            dirtiedPage.markDirty(true, tid);
+        }
     }
 
     /**
@@ -144,8 +149,9 @@ public class BufferPool {
      */
     public void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for lab1
+        DbFile file = Database.getCatalog().getDbFile(t.getRecordId().getPageId().getTableId());
+        Page dirtiedPage = file.deleteTuple(tid, t);
+        dirtiedPage.markDirty(true, tid);
     }
 
     /**

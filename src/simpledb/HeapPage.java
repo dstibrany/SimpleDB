@@ -254,7 +254,7 @@ public class HeapPage implements Page {
         }
 
         // find an empty slot
-    int emptySlotIdx = -1;
+        int emptySlotIdx = -1;
         for (int i = 0; i < this.numSlots; i++) {
             if (!this.getSlot(i)) {
                 emptySlotIdx = i;

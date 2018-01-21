@@ -14,6 +14,7 @@ build
 dist
 distribution
 java-repository
+out
 patch.tar.gz
 patch.txt
 target

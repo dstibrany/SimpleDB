@@ -274,7 +274,6 @@ public class HeapPage implements Page {
         if (dirty) {
             this.dirtierTid = tid;
         } else {
-
             this.dirtierTid = null;
         }
     }

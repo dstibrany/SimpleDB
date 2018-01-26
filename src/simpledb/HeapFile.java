@@ -65,9 +65,8 @@ public class HeapFile implements DbFile {
     // Using the file handle, we read a page of bytes at a specific offset
     // then create a new HeapPage using that data, and return it.
     public Page readPage(PageId pid) throws NoSuchElementException {
-        int pageSize = Database.getBufferPool().PAGE_SIZE;
-        long byteOffset = pid.pageno() * pageSize;
-        byte[] data = new byte[pageSize];
+        long pageOffset = pid.pageno() * BufferPool.PAGE_SIZE;
+        byte[] data = new byte[BufferPool.PAGE_SIZE];
 
         if (pid.pageno() > this.numPages()) {
             throw new NoSuchElementException();
@@ -81,7 +80,7 @@ public class HeapFile implements DbFile {
             // read the existing page from disk
             } else {
                 RandomAccessFile randomAccessFile = new RandomAccessFile(this.file, "r");
-                randomAccessFile.seek(byteOffset);
+                randomAccessFile.seek(pageOffset);
                 randomAccessFile.read(data);
                 return new HeapPage((HeapPageId) pid, data);
             }
@@ -92,8 +91,11 @@ public class HeapFile implements DbFile {
 
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
-        // some code goes here
-        // not necessary for lab1
+        PageId pid = page.getId();
+        long pageOffset = pid.pageno() * BufferPool.PAGE_SIZE;
+        RandomAccessFile randomAccessFile = new RandomAccessFile(this.file, "rw");
+        randomAccessFile.seek(pageOffset);
+        randomAccessFile.write(page.getPageData());
     }
 
     /**

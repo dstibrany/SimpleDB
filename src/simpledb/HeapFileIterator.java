@@ -9,13 +9,13 @@ public class HeapFileIterator extends AbstractDbFileIterator {
     private HeapFile heapFile;
     private TransactionId tid;
     private int nextPageNo;
-    private Iterator<Tuple> pageIterator;
+    private Iterator<Tuple> tupleIterator;
 
     public HeapFileIterator(HeapFile heapFile, TransactionId tid) {
         this.heapFile = heapFile;
         this.tid = tid;
         this.nextPageNo = 0;
-        this.pageIterator = null;
+        this.tupleIterator = null;
     }
 
     /**
@@ -24,7 +24,7 @@ public class HeapFileIterator extends AbstractDbFileIterator {
      */
     public void open() 
         throws DbException, TransactionAbortedException {
-        this.pageIterator = this.getNextPageIterator();
+        this.tupleIterator = this.getNextPageIterator();
     }
 
     /**
@@ -43,21 +43,23 @@ public class HeapFileIterator extends AbstractDbFileIterator {
     public void close() {
         super.close();
         this.nextPageNo = 0;
-        this.pageIterator = null;
+        this.tupleIterator = null;
     }
 
     protected Tuple readNext()
             throws DbException, TransactionAbortedException {
-        if (this.pageIterator == null) return null;
+        if (this.tupleIterator == null) return null;
 
-        if (this.pageIterator.hasNext()) {
-            return this.pageIterator.next();
+        if (this.tupleIterator.hasNext()) {
+            return this.tupleIterator.next();
         } else if (this.nextPageNo < this.heapFile.numPages()) {
-            this.pageIterator = this.getNextPageIterator();
-            return this.pageIterator.next();
-        } else {
-            return null;
+            this.tupleIterator = this.getNextPageIterator();
+            if (this.tupleIterator.hasNext()) {
+                return this.tupleIterator.next();
+            }
         }
+
+        return null;
     }
 
     private Iterator<Tuple> getNextPageIterator() throws DbException, TransactionAbortedException {

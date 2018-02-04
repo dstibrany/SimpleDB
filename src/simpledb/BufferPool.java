@@ -204,16 +204,20 @@ public class BufferPool {
      */
     private synchronized void evictPage() throws DbException {
         Page lruPage = findLRUPage();
+
+        if (lruPage == null) throw new DbException("There are no pages to evict in the buffer pool");
+
         try {
             this.flushPage(lruPage.getId());
             this.pagePool.remove(lruPage.getId());
         } catch (IOException e) {
-            throw new DbException("Page could not be removed");
+            throw new DbException("Page could not be flushed");
         }
     }
 
     /**
-     *
+     * Implements LRU: Finds the page with the oldest timestamp. Note that timestamps are updated each time a page
+     * is grabbed from the buffer pool.
      * @return The least recently used page
      */
     private Page findLRUPage() {

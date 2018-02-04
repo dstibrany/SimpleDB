@@ -6,6 +6,7 @@ import simpledb.systemtest.SystemTestUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.*;
 
 import org.junit.Before;
@@ -120,6 +121,18 @@ public class HeapPageReadTest extends SimpleDbTestBase {
         for (int i = 20; i < 504; ++i) {
             assertFalse(page.getSlot(i));
         }
+    }
+
+    @Test public void getLastAccessTimestamp() throws Exception {
+        HeapPage page = new HeapPage(pid, EXAMPLE_DATA);
+        assertTrue(Instant.now().toEpochMilli() > page.getLastAccessTimestamp());
+    }
+
+    @Test public void updateLastAccessTimestamp() throws Exception {
+        HeapPage page = new HeapPage(pid, EXAMPLE_DATA);
+        long originalTimestamp = page.getLastAccessTimestamp();
+        page.updateLastAccessTimestamp();
+        assertTrue(originalTimestamp < page.getLastAccessTimestamp());
     }
 
     /**

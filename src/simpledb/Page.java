@@ -56,4 +56,16 @@ public interface Page {
      * copy current content to the before image.
      */
     public void setBeforeImage();
+
+    /**
+     * Set the last access timestamp to the current time.
+     * Used for the LRU Buffer Pool replacement policy
+     */
+    public void updateLastAccessTimestamp();
+
+    /**
+     * Get the last access timestamp of the current page.
+     * Used for the LRU Buffer Pool replacement policy
+     */
+    public long getLastAccessTimestamp();
 }

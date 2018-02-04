@@ -2,6 +2,7 @@ package simpledb;
 
 import java.util.*;
 import java.io.*;
+import java.time.Instant;
 
 /**
  * HeapPage stores pages of HeapFiles and implements the Page interface that
@@ -17,6 +18,7 @@ public class HeapPage implements Page {
     private Tuple[] tuples;
     private int numSlots;
     private TransactionId dirtierTid;
+    private long lastAccessTimestamp;
 
     private byte[] oldData;
 
@@ -41,6 +43,7 @@ public class HeapPage implements Page {
         this.td = Database.getCatalog().getTupleDesc(id.getTableId());
         this.numSlots = getNumTuples();
         this.dirtierTid = null;
+        this.updateLastAccessTimestamp();
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
 
         // allocate and read the header slots of this page
@@ -328,6 +331,17 @@ public class HeapPage implements Page {
             }
         }
         return validTuples.iterator();
+    }
+
+    /**
+     * Set the page timestamp to the current time
+     */
+    public void updateLastAccessTimestamp() {
+        this.lastAccessTimestamp = Instant.now().toEpochMilli();
+    }
+
+    public long getLastAccessTimestamp() {
+        return this.lastAccessTimestamp;
     }
 
 }

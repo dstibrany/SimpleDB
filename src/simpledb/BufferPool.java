@@ -53,11 +53,13 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         if (this.pagePool.containsKey(pid)) {
-            return this.pagePool.get(pid);
+            Page page = this.pagePool.get(pid);
+            page.updateLastAccessTimestamp();
+            return page;
         }
 
         if (this.pagePool.size() >= this.numPages) {
-            throw new DbException("The Buffer Pool is full");
+            this.evictPage();
         }
 
         Page newPage = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
@@ -180,10 +182,13 @@ public class BufferPool {
      * @param pid an ID indicating the page to flush
      */
     private synchronized void flushPage(PageId pid) throws IOException {
-        Page pageToFlush = this.pagePool.get(pid);
-        DbFile tableFile = Database.getCatalog().getDbFile(pid.getTableId());
-        tableFile.writePage(pageToFlush);
-        pageToFlush.markDirty(false, null);
+        Page page = this.pagePool.get(pid);
+
+        if (page.isDirty() != null) {
+            DbFile tableFile = Database.getCatalog().getDbFile(pid.getTableId());
+            tableFile.writePage(page);
+            page.markDirty(false, null);
+        }
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -198,7 +203,32 @@ public class BufferPool {
      * Flushes the page to disk to ensure dirty pages are updated on disk.
      */
     private synchronized void evictPage() throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        Page lruPage = findLRUPage();
+        try {
+            this.flushPage(lruPage.getId());
+            this.pagePool.remove(lruPage.getId());
+        } catch (IOException e) {
+            throw new DbException("Page could not be removed");
+        }
+    }
+
+    /**
+     *
+     * @return The least recently used page
+     */
+    private Page findLRUPage() {
+        Page lruPage = null;
+
+        for (Page page: this.pagePool.values()) {
+            if (lruPage == null) {
+                lruPage = page;
+                continue;
+            }
+            if (page.getLastAccessTimestamp() < lruPage.getLastAccessTimestamp()) {
+                lruPage = page;
+            }
+        }
+
+        return lruPage;
     }
 }

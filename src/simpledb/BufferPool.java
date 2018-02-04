@@ -32,7 +32,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         this.numPages = numPages;
-        this.pagePool = new HashMap<PageId, Page>();
+        this.pagePool = new HashMap<>();
     }
 
     /**
@@ -220,7 +220,7 @@ public class BufferPool {
      * is grabbed from the buffer pool.
      * @return The least recently used page
      */
-    private Page findLRUPage() {
+    public Page findLRUPage() {
         Page lruPage = null;
 
         for (Page page: this.pagePool.values()) {

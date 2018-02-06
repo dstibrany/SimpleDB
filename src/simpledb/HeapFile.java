@@ -82,6 +82,7 @@ public class HeapFile implements DbFile {
                 RandomAccessFile randomAccessFile = new RandomAccessFile(this.file, "r");
                 randomAccessFile.seek(pageOffset);
                 randomAccessFile.read(data);
+                randomAccessFile.close();
                 return new HeapPage((HeapPageId) pid, data);
             }
         } catch (IOException e) {

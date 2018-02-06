@@ -1,8 +1,9 @@
-package simpledb;
+package simpledb.examples;
+
 import java.io.*;
+import simpledb.*;
 
-
-public class Test {
+public class SeqScanTest {
     
     public static void main(String[] argv) {
         // construct a 3-column table schema

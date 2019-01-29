@@ -46,7 +46,7 @@ public class BufferPoolTest extends SimpleDbTestBase {
             pool.getPage(tid, new HeapPageId(hf.getId(), i), Permissions.READ_ONLY);
         }
 
-        assertTrue(lruPage.equals(pool.findLRUPage()));
+        assertEquals(lruPage, pool.findLRUPage());
     }
 
     /**
@@ -59,10 +59,11 @@ public class BufferPoolTest extends SimpleDbTestBase {
 
         for (int i = 0; i < hf.numPages(); i++) {
             Page page = pool.getPage(tid, new HeapPageId(hf.getId(), i), Permissions.READ_ONLY);
+            Thread.sleep(1);
             if (i == 1) lruPage = page;
         }
 
-        assertTrue(lruPage.equals(pool.findLRUPage()));
+        assertEquals(lruPage.getId().pageno(), pool.findLRUPage().getId().pageno());
     }
 
     /**

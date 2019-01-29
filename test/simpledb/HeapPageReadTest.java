@@ -125,14 +125,14 @@ public class HeapPageReadTest extends SimpleDbTestBase {
 
     @Test public void getLastAccessTimestamp() throws Exception {
         HeapPage page = new HeapPage(pid, EXAMPLE_DATA);
-        assertTrue(Instant.now().toEpochMilli() > page.getLastAccessTimestamp());
+        assertTrue(Instant.now().toEpochMilli() >= page.getLastAccessTimestamp());
     }
 
     @Test public void updateLastAccessTimestamp() throws Exception {
         HeapPage page = new HeapPage(pid, EXAMPLE_DATA);
         long originalTimestamp = page.getLastAccessTimestamp();
         page.updateLastAccessTimestamp();
-        assertTrue(originalTimestamp < page.getLastAccessTimestamp());
+        assertTrue(originalTimestamp <= page.getLastAccessTimestamp());
     }
 
     /**

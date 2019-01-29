@@ -12,7 +12,6 @@
     <property name="doc" location="javadoc"/>
     <property name="dist" location="dist"/>
     <property name="jarfile" location="${dist}/${ant.project.name}.jar"/>
-    <property name="testfile" location="${dist}/testfile.jar"/>
     <property name="compile.debug" value="true"/>
     <property name="test.reports" location="testreport"/>
 
@@ -38,9 +37,9 @@
         <sequential>
             <mkdir dir="@{destdir}"/>
             <!-- avoids needing ant clean when changing interfaces -->
-            <depend srcdir="${srcdir}" destdir="${destdir}" cache="${depcache}"/>
+            <depend srcdir="@{srcdir}" destdir="@{destdir}" cache="${depcache}"/>
             <javac srcdir="@{srcdir}" destdir="@{destdir}" includeAntRuntime="no"
-                    debug="${compile.debug}" source="${sourceversion}">
+                   debug="${compile.debug}" source="${sourceversion}">
                 <compilerarg value="-Xlint:unchecked" />
                 <!--<compilerarg value="-Xlint:deprecation" />-->
                 <compileoptions/>
@@ -54,7 +53,7 @@
         <element name="testspecification" implicit="yes" />
         <sequential>
             <!-- timeout at 10.5 minutes, since TransactionTest is limited to 10 minutes. -->
-            <junit printsummary="on" fork="yes" timeout="630000" haltonfailure="@{haltonfailure}" maxmemory="128M" failureproperty="junit.failed">
+            <junit printsummary="on" fork="no" timeout="630000" haltonfailure="@{haltonfailure}" maxmemory="128M" failureproperty="junit.failed">
                 <classpath refid="classpath.test" />
                 <formatter type="plain" usefile="false"/>
                 <assertions><enable/></assertions>
@@ -78,18 +77,6 @@
         </javadoc>
     </target>
 
-    <target name="testfile" depends="compile" description="Build jar">
-        <mkdir dir="${dist}"/>
-        <jar jarfile="${testfile}" basedir="${build.src}">
-            <manifest>
-                <attribute name="Main-Class" value="simpledb.Test"/>
-                <attribute name="Class-Path" value="../lib/zql.jar ../lib/jline-0.9.94.jar"/>
-            </manifest>
-            <!-- Merge library jars into final jar file -->
-            <!--<zipgroupfileset refid="lib.jars"/>-->
-        </jar>
-    </target>
-
     <target name="dist" depends="compile" description="Build jar">
         <mkdir dir="${dist}"/>
         <jar jarfile="${jarfile}" basedir="${build.src}">
@@ -101,7 +88,6 @@
             <!--<zipgroupfileset refid="lib.jars"/>-->
         </jar>
     </target>
-
 
     <target name="clean" description="Remove build and dist directories">
         <delete dir="${build}"/>
@@ -144,7 +130,7 @@
 
         <!-- Check if the class exists -->
         <available property="test.exists" classname="simpledb.${test}">
-                <classpath refid="classpath.test" />
+            <classpath refid="classpath.test" />
         </available>
         <fail unless="test.exists" message="Test ${test} could not be found"/>
 
@@ -160,7 +146,7 @@
 
         <!-- Check if the class exists -->
         <available property="test.exists" classname="simpledb.systemtest.${test}">
-                <classpath refid="classpath.test" />
+            <classpath refid="classpath.test" />
         </available>
         <fail unless="test.exists" message="Test ${test} could not be found"/>
 
@@ -192,19 +178,19 @@
             </fileset>
             <report todir="${test.reports}" />
         </junitreport>
-        
+
         <!-- Fail here if the junit tests failed. -->
         <fail if="junit.failed" message="Some JUnit tests failed"/>
     </target>
-    
+
     <target name="handin" depends="clean"
-        description="Create a tarball of your code to hand in">
+            description="Create a tarball of your code to hand in">
         <tar destfile="lab-handin.tar.bz2" compression="bzip2"
-            basedir="." />
+             basedir="." />
         <echo message="Tarball created!  Please submit 'lab-handin.tar.bz2' per the instructions in the lab document." />
     </target>
 
     <target name="test-and-handin" depends="test,systemtest,handin"
-        description="Run all the tests and system tests; if they succeed, create a tarball of the source code to submit" />
+            description="Run all the tests and system tests; if they succeed, create a tarball of the source code to submit" />
 
 </project>

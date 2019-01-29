@@ -210,6 +210,7 @@ public class BufferPool {
         try {
             this.flushPage(lruPage.getId());
             this.pagePool.remove(lruPage.getId());
+            System.out.printf("Flushing pageno: %d\n", lruPage.getId().pageno());
         } catch (IOException e) {
             throw new DbException("Page could not be flushed");
         }
@@ -222,12 +223,12 @@ public class BufferPool {
      */
     public Page findLRUPage() {
         Page lruPage = null;
-
         for (Page page: this.pagePool.values()) {
             if (lruPage == null) {
                 lruPage = page;
                 continue;
             }
+
             if (page.getLastAccessTimestamp() < lruPage.getLastAccessTimestamp()) {
                 lruPage = page;
             }

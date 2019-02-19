@@ -1,6 +1,7 @@
 package simpledb;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -33,6 +34,7 @@ public class DeleteTest extends SimpleDbTestBase {
     while (setupIterator.hasNext()) {
       tuples.add(setupIterator.next());
     }
+    Database.getLockManager().removeTransaction(setupTid.hashCode());
 
     this.tid = new TransactionId();
     this.tupleIterator = new TupleIterator(new TupleDesc(new Type[]{Type.INT_TYPE, Type.INT_TYPE}), tuples);

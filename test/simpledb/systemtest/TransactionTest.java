@@ -9,6 +9,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Arrays;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import simpledb.*;
@@ -117,7 +118,7 @@ public class TransactionTest extends SimpleDbTestBase {
                         Query q2 = new Query(delOp, tr.getId());
 
                         q2.start();
-                        q2.next();
+                        Tuple tu = q2.next();
                         q2.close();
 
                         // set up a Set with a tuple that is one higher than the old one.
@@ -135,13 +136,13 @@ public class TransactionTest extends SimpleDbTestBase {
                         tr.commit();
                         break;
                     } catch (TransactionAbortedException te) {
-                        //System.out.println("thread " + tr.getId() + " killed");
+//                        System.out.println("thread " + Thread.currentThread().getId() + " killed");
                         // give someone else a chance: abort the transaction
                         tr.transactionComplete(true);
                         latch.stillParticipating();
                     }
                 }
-                //System.out.println("thread " + id + " done");
+//                System.out.println("thread " + Thread.currentThread().getId() + " done");
             } catch (Exception e) {
                 // Store exception for the master thread to handle
                 exception = e;

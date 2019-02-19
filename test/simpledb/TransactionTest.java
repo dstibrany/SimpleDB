@@ -2,6 +2,7 @@ package simpledb;
 
 import java.util.*;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import junit.framework.JUnit4TestAdapter;
@@ -45,6 +46,7 @@ public class TransactionTest extends TestUtil.CreateHeapFile {
     bp.getPage(tid, p2, Permissions.READ_WRITE).markDirty(true, tid);
     bp.flushAllPages();
     bp = Database.resetBufferPool(BufferPool.DEFAULT_PAGES);
+    Database.resetLockManager();
   }
 
   /**

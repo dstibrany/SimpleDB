@@ -1,5 +1,6 @@
 package simpledb;
 
+import org.junit.Ignore;
 import simpledb.TestUtil.LockGrabber;
 
 import java.util.*;
@@ -53,6 +54,7 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
     bp.getPage(tid, p2, Permissions.READ_WRITE).markDirty(true, tid);
     bp.flushAllPages();
     bp = Database.resetBufferPool(BufferPool.DEFAULT_PAGES);
+    Database.resetLockManager();
   }
 
   /**

@@ -1,5 +1,7 @@
 package simpledb;
 
+import com.dstibrany.lockmanager.Lock;
+
 /**
  * Class representing requested permissions to a relation/file.
  * Private constructor with two static objects READ_ONLY and READ_WRITE that
@@ -10,6 +12,18 @@ public class Permissions {
 
   private Permissions(int permLevel) {
     this.permLevel = permLevel;
+  }
+
+  Lock.LockMode adaptForLockManager() {
+      if (permLevel == 0) {
+        return Lock.LockMode.SHARED;
+      }
+      else if (permLevel == 1) {
+        return Lock.LockMode.EXCLUSIVE;
+      }
+      else {
+          return null;
+      }
   }
 
   public String toString() {

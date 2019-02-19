@@ -1,5 +1,8 @@
 package simpledb;
 
+
+import com.dstibrany.lockmanager.LockManager;
+
 import java.io.*;
 
 /** Database is a class that initializes several static
@@ -13,7 +16,8 @@ import java.io.*;
 public class Database {
 	private static Database _instance = new Database();
     private final Catalog _catalog;
-    private BufferPool _bufferpool; 
+    private BufferPool _bufferpool;
+    private LockManager _lockManager;
 
     private final static String LOGFILENAME = "log";
     private LogFile _logfile;
@@ -21,6 +25,7 @@ public class Database {
     private Database() {
     	_catalog = new Catalog();
     	_bufferpool = new BufferPool(BufferPool.DEFAULT_PAGES);
+        _lockManager = new LockManager();
     	try {
             _logfile = new LogFile(new File(LOGFILENAME));
         } catch(IOException e) {
@@ -41,6 +46,11 @@ public class Database {
         return _instance._bufferpool;
     }
 
+    /** Return the lock manager of the static Database instance*/
+    public static LockManager getLockManager() {
+        return _instance._lockManager;
+    }
+
     /** Return the catalog of the static Database instance*/
     public static Catalog getCatalog() {
         return _instance._catalog;
@@ -52,6 +62,14 @@ public class Database {
     public static BufferPool resetBufferPool(int pages) {
         _instance._bufferpool = new BufferPool(pages);
         return _instance._bufferpool;
+    }
+
+    /** Method used for testing -- create a new instance of the
+     lock manager and return it
+     */
+    public static LockManager resetLockManager() {
+        _instance._lockManager = new LockManager();
+        return _instance._lockManager;
     }
 
     //reset the database, used for unit tests only.

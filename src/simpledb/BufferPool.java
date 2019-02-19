@@ -1,9 +1,11 @@
 package simpledb;
 
-import javax.xml.crypto.Data;
+import com.dstibrany.lockmanager.DeadlockException;
+
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * BufferPool manages the reading and writing of pages into memory from
  * disk. Access methods call into it to retrieve pages, and it fetches
@@ -15,7 +17,8 @@ import java.util.HashMap;
  */
 public class BufferPool {
     private int numPages;
-    private HashMap<PageId, Page> pagePool;
+    private Map<PageId, Page> pagePool = new ConcurrentHashMap<>();
+    private Map<TransactionId, Set<PageId>> transactionPageMap  = new ConcurrentHashMap<>();
 
     /** Bytes per page, including header. */
     public static final int PAGE_SIZE = 4096;
@@ -32,7 +35,6 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         this.numPages = numPages;
-        this.pagePool = new HashMap<>();
     }
 
     /**
@@ -52,19 +54,30 @@ public class BufferPool {
      */
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        if (this.pagePool.containsKey(pid)) {
+
+        try {
+            Database.getLockManager().lock(pid.hashCode(), tid.hashCode(), perm.adaptForLockManager());
+        } catch (DeadlockException e) {
+            throw new TransactionAbortedException();
+        }
+
+        Set<PageId> transactionPages = transactionPageMap.getOrDefault(tid, new HashSet<>());
+        transactionPages.add(pid);
+        transactionPageMap.put(tid, transactionPages);
+
+        if (pagePool.containsKey(pid)) {
             Page page = this.pagePool.get(pid);
             page.updateLastAccessTimestamp();
             return page;
         }
 
-        if (this.pagePool.size() >= this.numPages) {
-            this.evictPage();
+        if (pagePool.size() >= this.numPages) {
+            evictPage();
         }
 
         Page newPage = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
 
-        this.pagePool.put(pid, newPage);
+        pagePool.put(pid, newPage);
             
         return newPage;
     }
@@ -79,8 +92,7 @@ public class BufferPool {
      * @param pid the ID of the page to unlock
      */
     public void releasePage(TransactionId tid, PageId pid) {
-        // some code goes here
-        // not necessary for lab1|lab2
+        Database.getLockManager().unlock(pid.hashCode(), tid.hashCode());
     }
 
     /**
@@ -88,16 +100,13 @@ public class BufferPool {
      *
      * @param tid the ID of the transaction requesting the unlock
      */
-    public void transactionComplete(TransactionId tid) throws IOException {
-        // some code goes here
-        // not necessary for lab1|lab2
+    public void transactionComplete(TransactionId tid) throws IOException, TransactionAbortedException, DbException {
+        transactionComplete(tid, true);
     }
 
     /** Return true if the specified transaction has a lock on the specified page */
-    public boolean holdsLock(TransactionId tid, PageId p) {
-        // some code goes here
-        // not necessary for lab1|lab2
-        return false;
+    public boolean holdsLock(TransactionId tid, PageId pid) {
+        return Database.getLockManager().hasLock(tid.hashCode(), pid.hashCode());
     }
 
     /**
@@ -109,8 +118,20 @@ public class BufferPool {
      */
     public void transactionComplete(TransactionId tid, boolean commit)
         throws IOException {
-        // some code goes here
-        // not necessary for lab1|lab2
+
+        Set<PageId> transactionPageIds = transactionPageMap.getOrDefault(tid, Collections.emptySet());
+        for (PageId pid: transactionPageIds) {
+            if (commit) {
+                flushPage(pid);
+            } else {
+                if (pagePool.get(pid) != null && tid.equals(pagePool.get(pid).isDirty())) {
+                    Page restoredPage = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
+                    pagePool.put(pid, restoredPage);
+                }
+            }
+        }
+        Database.getLockManager().removeTransaction(tid.hashCode());
+        transactionPageMap.remove(tid);
     }
 
     /**
@@ -151,6 +172,9 @@ public class BufferPool {
      */
     public void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, TransactionAbortedException {
+        if (t.getRecordId() == null) {
+            System.out.printf("NULL: %s\n", t.toString());
+        }
         DbFile file = Database.getCatalog().getDbFile(t.getRecordId().getPageId().getTableId());
         Page dirtiedPage = file.deleteTuple(tid, t);
         dirtiedPage.markDirty(true, tid);
@@ -173,8 +197,7 @@ public class BufferPool {
         cache.
     */
     public synchronized void discardPage(PageId pid) {
-        // some code goes here
-        // only necessary for lab5
+
     }
 
     /**
@@ -184,7 +207,7 @@ public class BufferPool {
     private synchronized void flushPage(PageId pid) throws IOException {
         Page page = this.pagePool.get(pid);
 
-        if (page.isDirty() != null) {
+        if (page != null && page.isDirty() != null) {
             DbFile tableFile = Database.getCatalog().getDbFile(pid.getTableId());
             tableFile.writePage(page);
             page.markDirty(false, null);
@@ -210,7 +233,6 @@ public class BufferPool {
         try {
             this.flushPage(lruPage.getId());
             this.pagePool.remove(lruPage.getId());
-            System.out.printf("Flushing pageno: %d\n", lruPage.getId().pageno());
         } catch (IOException e) {
             throw new DbException("Page could not be flushed");
         }
@@ -221,15 +243,15 @@ public class BufferPool {
      * is grabbed from the buffer pool.
      * @return The least recently used page
      */
-    public Page findLRUPage() {
+    Page findLRUPage() {
         Page lruPage = null;
         for (Page page: this.pagePool.values()) {
-            if (lruPage == null) {
-                lruPage = page;
+            // Skip dirty pages for NO STEAL
+            if (page.isDirty() != null) {
                 continue;
             }
 
-            if (page.getLastAccessTimestamp() < lruPage.getLastAccessTimestamp()) {
+            if (lruPage == null || page.getLastAccessTimestamp() < lruPage.getLastAccessTimestamp()) {
                 lruPage = page;
             }
         }

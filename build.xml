@@ -21,6 +21,7 @@
         <pathelement location="${build.src}"/>
         <pathelement location="${lib}/zql.jar"/>
         <pathelement location="${lib}/jline-0.9.94.jar"/>
+        <pathelement location="${lib}/LockManager-1.0.0.jar"/>
     </path>
 
     <path id="classpath.test">

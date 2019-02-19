@@ -48,6 +48,7 @@ public class LockingTest extends TestUtil.CreateHeapFile {
     bp.getPage(tid, p2, Permissions.READ_WRITE).markDirty(true, tid);
     bp.flushAllPages();
     bp = Database.resetBufferPool(BufferPool.DEFAULT_PAGES);
+    Database.resetLockManager();
   }
 
   /**
@@ -93,7 +94,7 @@ public class LockingTest extends TestUtil.CreateHeapFile {
     assertNull(t.getError());
 
     // TODO(ghuo): yes, stop() is evil, but this is unit test cleanup
-    t.stop();
+//    t.stop();
   }
 
   /**

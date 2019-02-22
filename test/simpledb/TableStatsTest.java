@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.Assert;
 
@@ -11,6 +12,7 @@ import simpledb.Aggregator.Op;
 import simpledb.systemtest.SimpleDbTestBase;
 import simpledb.systemtest.SystemTestUtil;
 
+@Ignore
 public class TableStatsTest extends SimpleDbTestBase {
 	public static final int IO_COST = 71;
 	

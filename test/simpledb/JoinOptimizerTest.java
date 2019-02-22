@@ -9,11 +9,13 @@ import java.util.Vector;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import simpledb.systemtest.SimpleDbTestBase;
 import simpledb.systemtest.SystemTestUtil;
 
+@Ignore
 public class JoinOptimizerTest extends SimpleDbTestBase {
 	
 	/**

@@ -6,7 +6,6 @@ import org.junit.Assert;
 
 import simpledb.Predicate.Op;
 
-@Ignore
 public class IntHistogramTest {
 
 	/**
@@ -171,9 +170,41 @@ public class IntHistogramTest {
 		h.addValue(3);
 		h.addValue(3);
 		h.addValue(3);
-		
+
 		// Be conservative in case of alternate implementations
 		Assert.assertTrue(h.estimateSelectivity(Op.NOT_EQUALS, 3) < 0.001);
 		Assert.assertTrue(h.estimateSelectivity(Op.NOT_EQUALS, 8) > 0.01);
+	}
+
+	@Test public void toStringTest() {
+		IntHistogram h = new IntHistogram(10, 1, 10);
+		h.addValue(1);
+		h.addValue(5);
+		h.addValue(5);
+		h.addValue(9);
+		Assert.assertEquals("1-1: 1, 2-2: 0, 3-3: 0, 4-4: 0, 5-5: 2, 6-6: 0, 7-7: 0, 8-8: 0, 9-9: 1, 10-10: 0", h.toString());
+
+		IntHistogram h2 = new IntHistogram(5, 1, 10);
+		h2.addValue(1);
+		h2.addValue(5);
+		h2.addValue(5);
+		h2.addValue(9);
+		Assert.assertEquals("1-2: 1, 3-4: 0, 5-6: 2, 7-8: 0, 9-10: 1", h2.toString());
+
+		IntHistogram h3 = new IntHistogram(5, 0, 10);
+		h3.addValue(1);
+		h3.addValue(5);
+		h3.addValue(5);
+		h3.addValue(9);
+		h3.addValue(10);
+		Assert.assertEquals("0-2: 1, 3-5: 2, 6-8: 0, 9-11: 2, 12-14: 0", h3.toString());
+
+		IntHistogram h4 = new IntHistogram(4, 0, 10);
+		h4.addValue(1);
+		h4.addValue(5);
+		h4.addValue(5);
+		h4.addValue(9);
+		h4.addValue(10);
+		Assert.assertEquals("0-2: 1, 3-5: 2, 6-8: 0, 9-11: 2", h4.toString());
 	}
 }

@@ -59,10 +59,10 @@ public class IntHistogram {
 
         switch (op) {
             case EQUALS:
-                selectivity = (buckets[bucketIndex] / (bucketSize * 1.0)) / (numTuples * 1.0);
+                selectivity = (bucketHeight(bucketIndex) / (bucketSize * 1.0)) / (numTuples * 1.0);
                 break;
             case NOT_EQUALS:
-                selectivity = (numTuples - buckets[bucketIndex] / (bucketSize * 1.0)) / (numTuples * 1.0);
+                selectivity = (numTuples - bucketHeight(bucketIndex) / (bucketSize * 1.0)) / (numTuples * 1.0);
                 break;
             case GREATER_THAN:
                 for (int i = bucketIndex; i < buckets.length; i++) {

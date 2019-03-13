@@ -12,7 +12,6 @@ import simpledb.Aggregator.Op;
 import simpledb.systemtest.SimpleDbTestBase;
 import simpledb.systemtest.SystemTestUtil;
 
-@Ignore
 public class TableStatsTest extends SimpleDbTestBase {
 	public static final int IO_COST = 71;
 	

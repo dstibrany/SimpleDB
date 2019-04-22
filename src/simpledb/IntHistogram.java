@@ -69,7 +69,7 @@ public class IntHistogram {
                     double bucketFraction = bucketHeight(i) / (numTuples * 1.0);
                     double bucketPartition = 1;
                     if (i == bucketIndex) {
-                        bucketPartition = bucketMaxValue(bucketIndex) - v / (bucketWidth(bucketIndex) * 1.0);
+                        bucketPartition = (bucketMaxValue(bucketIndex) - v) / (bucketWidth(bucketIndex) * 1.0);
 
                     }
                     selectivity += (bucketFraction * bucketPartition);
@@ -80,7 +80,7 @@ public class IntHistogram {
                     double bucketFraction = bucketHeight(i) / (numTuples * 1.0);
                     double bucketPartition = 1;
                     if (i == bucketIndex) {
-                        bucketPartition = bucketMaxValue(bucketIndex) - v + 1 / (bucketWidth(bucketIndex) * 1.0);
+                        bucketPartition = (bucketMaxValue(bucketIndex) - v + 1) / (bucketWidth(bucketIndex) * 1.0);
 
                     }
                     selectivity += (bucketFraction * bucketPartition);
@@ -91,7 +91,7 @@ public class IntHistogram {
                     double bucketFraction = bucketHeight(i) / (numTuples * 1.0);
                     double bucketPartition = 1;
                     if (i == bucketIndex) {
-                        bucketPartition = v - bucketMinValue(i) / (bucketWidth(bucketIndex) * 1.0);
+                        bucketPartition = (v - bucketMinValue(i)) / (bucketWidth(bucketIndex) * 1.0);
 
                     }
                     selectivity += (bucketFraction * bucketPartition);
@@ -102,7 +102,7 @@ public class IntHistogram {
                     double bucketFraction = bucketHeight(i) / (numTuples * 1.0);
                     double bucketPartition = 1;
                     if (i == bucketIndex) {
-                        bucketPartition = v - bucketMinValue(i) + 1 / (bucketWidth(bucketIndex) * 1.0);
+                        bucketPartition = (v - bucketMinValue(i) + 1) / (bucketWidth(bucketIndex) * 1.0);
 
                     }
                     selectivity += (bucketFraction * bucketPartition);
@@ -110,6 +110,8 @@ public class IntHistogram {
                 break;
             default:
         }
+
+        assert selectivity <= 1.0;
 
         return selectivity;
     }

@@ -30,3 +30,4 @@ src/tests/antunit/core/output
 /log.xml
 lib/optional/license.txt
 /release/distrib/
+catalog.txt

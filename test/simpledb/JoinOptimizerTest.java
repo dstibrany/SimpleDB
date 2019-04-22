@@ -2,10 +2,7 @@ package simpledb;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Vector;
+import java.util.*;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -15,7 +12,6 @@ import org.junit.Test;
 import simpledb.systemtest.SimpleDbTestBase;
 import simpledb.systemtest.SystemTestUtil;
 
-@Ignore
 public class JoinOptimizerTest extends SimpleDbTestBase {
 	
 	/**
@@ -199,12 +195,12 @@ public class JoinOptimizerTest extends SimpleDbTestBase {
 
 	         Assert.assertTrue(cardinality == 800 || cardinality == 2000);
 	}
-	
+
 	/**
 	 * Determine whether the orderJoins implementation is doing a reasonable job of ordering joins,
 	 * and not taking an unreasonable amount of time to do so 
 	 */
-	@Test public void orderJoinsTest() throws ParsingException, IOException, DbException, TransactionAbortedException {
+	@Test public void orderJoinsTest() throws ParsingException, IOException, DbException, TransactionAbortedException, InterruptedException{
 		// This test is intended to approximate the join described in the
 		// "Query Planning" section of 2009 Quiz 1,
 		// though with some minor variation due to limitations in simpledb
@@ -280,6 +276,7 @@ public class JoinOptimizerTest extends SimpleDbTestBase {
 		// Also check for some of the other silly cases, like forcing a cross join by
 		// "hobbies" only being at the two extremes, or "hobbies" being the outermost table.
 		Assert.assertFalse(result.get(2).t2 == "hobbies" && (result.get(0).t1 == "hobbies" || result.get(0).t2 == "hobbies"));
+
 	}
 	
 	/**

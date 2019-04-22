@@ -12,7 +12,6 @@ import org.junit.Test;
 
 import simpledb.systemtest.SimpleDbTestBase;
 
-@Ignore
 public class IntAggregatorTest extends SimpleDbTestBase {
 
   int width1 = 2;

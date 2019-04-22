@@ -85,10 +85,7 @@ public class JoinOptimizer {
         	// You do not need to implement proper support for these for Lab 4.
         	return card1 + cost1 + cost2;
         } else {
-            // Insert your code here.
-            // HINT:  You may need to use the variable "j" if you implemented a join
-            //        algorithm that's more complicated than a basic nested-loops join.
-            return -1.0;
+            return cost1 + (card1 * cost2) + (card1 * card2);
         }
     }
 
@@ -105,14 +102,28 @@ public class JoinOptimizer {
      * @return The cardinality of the join
      */
     public int estimateJoinCardinality(LogicalJoinNode j, int card1, int card2, boolean t1pkey, boolean t2pkey) {
+        int cardinality = 0;
+
         if (j instanceof LogicalSubplanJoinNode) {
             // A LogicalSubplanJoinNode represents a subquery.
             // You do not need to implement proper support for these for Lab 4.
-            return card1;
+            cardinality = card1;
         } else {
-            // some code goes here
-            return -1;
+            if (j.p == Predicate.Op.EQUALS) {
+                if (t1pkey && t2pkey) {
+                    cardinality = Math.min(card1, card2);
+                } else if (t1pkey && !t2pkey) {
+                    cardinality = card2;
+                } else if (!t1pkey && t2pkey) {
+                    cardinality = card1;
+                } else if (!t1pkey && !t2pkey) {
+                    cardinality = Math.max(card1, card2);
+                }
+            } else {
+                cardinality = (int) (card1 * card2 * 0.3);
+            }
         }
+        return cardinality;
     }
 
     /** Helper method to enumerate all of the subsets of a given size
@@ -139,7 +150,8 @@ public class JoinOptimizer {
             }
             els = newels;
         }
-        
+
+        long end = System.currentTimeMillis();
         return els;
             
     }
@@ -166,11 +178,37 @@ public class JoinOptimizer {
                                               boolean explain) throws ParsingException 
     {
 
-        // See the Lab 4 writeup for some hints as to how this function should work.
+        PlanCache planCache = new PlanCache();
 
-        // some code goes here
-        //Replace the following
-        return joins;
+        for (int i = 1; i <= joins.size(); i++) {
+            for (Set<LogicalJoinNode> subset : enumerateSubsets(joins, i)) {
+                CostCard bestPlan = new CostCard();
+                bestPlan.cost = Double.MAX_VALUE;
+                for (LogicalJoinNode l : subset) {
+                    CostCard c = computeCostAndCardOfSubplan(
+                            stats,
+                            filterSelectivities,
+                            l,
+                            subset,
+                            bestPlan.cost,
+                            planCache
+                    );
+
+                    if (c != null) {
+                        bestPlan = c;
+                    }
+                }
+                planCache.addPlan(subset, bestPlan.cost, bestPlan.card, bestPlan.plan);
+            }
+
+        }
+
+        Vector<LogicalJoinNode> optOrder = planCache.getOrder(new HashSet<>(joins));
+        if (explain) {
+            printJoins(optOrder, planCache, stats, filterSelectivities);
+        }
+
+        return planCache.getOrder(new HashSet<>(joins));
     } 
  
     //===================== Private Methods =================================

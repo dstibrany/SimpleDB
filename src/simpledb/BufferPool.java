@@ -123,6 +123,8 @@ public class BufferPool {
         for (PageId pid: transactionPageIds) {
             if (commit) {
                 flushPage(pid);
+                Page page = this.pagePool.get(pid);
+                page.setBeforeImage();
             } else {
                 if (pagePool.get(pid) != null && tid.equals(pagePool.get(pid).isDirty())) {
                     Page restoredPage = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
@@ -208,6 +210,12 @@ public class BufferPool {
         Page page = this.pagePool.get(pid);
 
         if (page != null && page.isDirty() != null) {
+            // append an update record to the log, with
+            // a before-image and after-image.
+            TransactionId dirtier = page.isDirty();
+            Database.getLogFile().logWrite(dirtier, page.getBeforeImage(), page);
+            Database.getLogFile().force();
+
             DbFile tableFile = Database.getCatalog().getDbFile(pid.getTableId());
             tableFile.writePage(page);
             page.markDirty(false, null);

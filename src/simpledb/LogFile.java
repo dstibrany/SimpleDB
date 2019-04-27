@@ -466,7 +466,29 @@ public class LogFile {
         synchronized (Database.getBufferPool()) {
             synchronized(this) {
                 preAppend();
-                // some code goes here
+
+                raf.seek(tidToFirstLogRecord.get(tid.getId()));
+
+                while (true) {
+                    try {
+                        int recordType = raf.readInt();
+                        long recordTid = raf.readLong();
+
+                        if (recordType == UPDATE_RECORD) {
+                            HeapPage page = (HeapPage) readPageData(raf);
+                            if (recordTid == tid.getId()) {
+                                HeapFile file = (HeapFile) Database.getCatalog().getDbFile(page.getId().getTableId());
+                                file.writePage(page.getBeforeImage());
+                                Database.getBufferPool().discardPage(page.getId());
+                            }
+                        }
+
+                        raf.readLong();
+
+                    } catch (EOFException e) {
+                        break;
+                    }
+                }
             }
         }
     }

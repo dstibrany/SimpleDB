@@ -199,7 +199,7 @@ public class BufferPool {
         cache.
     */
     public synchronized void discardPage(PageId pid) {
-
+        pagePool.remove(pid);
     }
 
     /**

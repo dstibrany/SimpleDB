@@ -729,20 +729,4 @@ public class LogFile {
     public synchronized void force() throws IOException {
         raf.getChannel().force(true);
     }
-
-    private void readCheckpointRecord(long cpOffset) throws IOException {
-        if (cpOffset != -1) {
-            raf.seek(cpOffset);
-            raf.readInt();
-            raf.readLong();
-            int numActiveTxns = raf.readInt();
-            for (int i = 0; i < numActiveTxns; i++) {
-                long txnId = raf.readLong();
-                long firstOffset = raf.readLong();
-                tidToFirstLogRecord.put(txnId, firstOffset);
-            }
-            raf.readLong();
-        }
-    }
-
 }

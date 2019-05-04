@@ -427,6 +427,33 @@ public class LogTest extends SimpleDbTestBase {
         t.commit();
     }
 
+    @Test public void TestCheckpointBeforeAbort()
+            throws IOException, DbException, TransactionAbortedException {
+        setup();
+        doInsert(hf1, 1, 2);
+
+        Transaction t1 = new Transaction();
+        t1.start();
+        insertRow(hf1, t1, 12, 11);
+        Database.getLogFile().logCheckpoint();
+        abort(t1);
+
+        Transaction t3 = new Transaction();
+        t3.start();
+        insertRow(hf1, t3, 28, 29);
+
+        crash();
+
+        Transaction t = new Transaction();
+        t.start();
+        look(hf1, t, 1, true);
+        look(hf1, t, 2, true);
+        look(hf1, t, 12, false);
+        look(hf2, t, 11, false);
+        look(hf2, t, 28, false);
+        look(hf2, t, 29, false);
+        t.commit();
+    }
     /** Make test compatible with older version of ant. */
     public static junit.framework.Test suite() {
         return new junit.framework.JUnit4TestAdapter(LogTest.class);

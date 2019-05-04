@@ -124,7 +124,9 @@ public class BufferPool {
             if (commit) {
                 flushPage(pid);
                 Page page = this.pagePool.get(pid);
-                page.setBeforeImage();
+                if (page != null) {
+                    page.setBeforeImage();
+                }
             } else {
                 if (pagePool.get(pid) != null && tid.equals(pagePool.get(pid).isDirty())) {
                     Page restoredPage = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
@@ -225,8 +227,12 @@ public class BufferPool {
     /** Write all pages of the specified transaction to disk.
      */
     public synchronized void flushPages(TransactionId tid) throws IOException {
-        // some code goes here
-        // not necessary for lab1|lab2|lab3
+        Set<PageId> txnPages = transactionPageMap.get(tid);
+        if (txnPages == null) return;
+
+        for (PageId pid : txnPages) {
+            flushPage(pid);
+        }
     }
 
     /**

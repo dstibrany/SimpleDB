@@ -466,6 +466,7 @@ public class LogFile {
         synchronized (Database.getBufferPool()) {
             synchronized(this) {
                 preAppend();
+                long prevOffset = raf.getFilePointer();
 
                 raf.seek(tidToFirstLogRecord.get(tid.getId()));
 
@@ -475,12 +476,13 @@ public class LogFile {
                         long recordTid = raf.readLong();
 
                         if (recordType == UPDATE_RECORD) {
-                            HeapPage page = (HeapPage) readPageData(raf);
+                            HeapPage beforePage = (HeapPage) readPageData(raf);
                             if (recordTid == tid.getId()) {
-                                HeapFile file = (HeapFile) Database.getCatalog().getDbFile(page.getId().getTableId());
-                                file.writePage(page.getBeforeImage());
-                                Database.getBufferPool().discardPage(page.getId());
+                                HeapFile file = (HeapFile) Database.getCatalog().getDbFile(beforePage.getId().getTableId());
+                                file.writePage(beforePage.getBeforeImage());
+                                Database.getBufferPool().discardPage(beforePage.getId());
                             }
+                            HeapPage afterPage = (HeapPage) readPageData(raf);
                         }
 
                         raf.readLong();
@@ -489,6 +491,7 @@ public class LogFile {
                         break;
                     }
                 }
+                raf.seek(prevOffset);
             }
         }
     }
@@ -515,9 +518,136 @@ public class LogFile {
         synchronized (Database.getBufferPool()) {
             synchronized (this) {
                 recoveryUndecided = false;
-                // some code goes here
+                Set<Long> losers = new HashSet<>();
+                Set<Long> winners = new HashSet<>();
+
+                raf.seek(0);
+                long cpOffset = raf.readLong();
+                if (cpOffset != -1) {
+                    raf.seek(cpOffset);
+                    raf.readInt();
+                    raf.readLong();
+                    int numActiveTxns = raf.readInt();
+                    for (int i = 0; i < numActiveTxns; i++) {
+                        long tid = raf.readLong();
+                        long firstOffset = raf.readLong();
+                        tidToFirstLogRecord.put(tid, firstOffset);
+                        losers.add(tid);
+                    }
+                }
+
+                // ANALYZE
+                raf.seek(0);
+                raf.readLong();
+
+                while (true) {
+                    try {
+                        int logType = raf.readInt();
+                        long tid = raf.readLong();
+
+                        switch(logType) {
+                            case ABORT_RECORD:
+                                losers.remove(tid);
+                                break;
+                            case COMMIT_RECORD:
+                                losers.remove(tid);
+                                winners.add(tid);
+                                break;
+                            case BEGIN_RECORD:
+                                losers.add(tid);
+                                break;
+                            case CHECKPOINT_RECORD:
+                                int numActiveTxns = raf.readInt();
+                                for (int i = 0; i < numActiveTxns; i++) {
+                                    raf.readLong();
+                                    raf.readLong();
+                                }
+                                break;
+                            case UPDATE_RECORD:
+                                readPageData(raf);
+                                readPageData(raf);
+                                break;
+                        }
+                        raf.readLong();
+                    } catch (EOFException e) {
+                        break;
+                    }
+                }
+
+                // REDO
+                raf.seek(0);
+                raf.readLong();
+
+                while (true) {
+                    try {
+                        int logType = raf.readInt();
+                        long tid = raf.readLong();
+
+                        switch(logType) {
+                            case CHECKPOINT_RECORD:
+                                int numActiveTxns = raf.readInt();
+                                for (int i = 0; i < numActiveTxns; i++) {
+                                    raf.readLong();
+                                    raf.readLong();
+                                }
+                                break;
+                            case UPDATE_RECORD:
+                                Page beforePage = readPageData(raf);
+                                Page afterPage = readPageData(raf);
+                                if (winners.contains(tid)) {
+                                    DbFile file = Database.getCatalog().getDbFile(afterPage.getId().getTableId());
+                                    file.writePage(afterPage);
+                                }
+                                break;
+                        }
+                        raf.readLong();
+                    } catch (EOFException e) {
+                        break;
+                    }
+                }
+
+                // UNDO
+                long minOffsetFromActiveTxns = Long.MAX_VALUE;
+                for (Map.Entry<Long, Long> entry : tidToFirstLogRecord.entrySet()) {
+                    if (losers.contains(entry.getKey())) {
+                        if (entry.getValue() < minOffsetFromActiveTxns) {
+                            minOffsetFromActiveTxns = entry.getValue();
+                        }
+                    }
+                }
+                long minOffset = Math.min(minOffsetFromActiveTxns, Math.max(cpOffset, 0));
+                long curOffset = raf.getFilePointer();
+                raf.seek(curOffset - LONG_SIZE);
+
+                while (curOffset >= minOffset && curOffset > 0) {
+                    long offsetPointer = raf.readLong();
+                    raf.seek(offsetPointer);
+                    int recordType = raf.readInt();
+                    long recordTid = raf.readLong();
+
+                    switch (recordType) {
+                        case UPDATE_RECORD:
+                            Page beforePage = readPageData(raf);
+                            DbFile file = Database.getCatalog().getDbFile(beforePage.getId().getTableId());
+                            if (losers.contains(recordTid)) {
+                                file.writePage(beforePage.getBeforeImage());
+                            }
+                            Page afterPage = readPageData(raf);
+                            break;
+
+                        case CHECKPOINT_RECORD:
+                            int numActiveTxns = raf.readInt();
+                            for (int i = 0; i < numActiveTxns; i++) {
+                                raf.readLong();
+                                raf.readLong();
+                            }
+                            break;
+                    }
+                    raf.seek(raf.readLong() - LONG_SIZE);
+                    curOffset = raf.getFilePointer();
+                }
             }
-         }
+        }
     }
 
     /** Print out a human readable represenation of the log */
@@ -596,8 +726,23 @@ public class LogFile {
         raf.seek(curOffset);
     }
 
-    public  synchronized void force() throws IOException {
+    public synchronized void force() throws IOException {
         raf.getChannel().force(true);
+    }
+
+    private void readCheckpointRecord(long cpOffset) throws IOException {
+        if (cpOffset != -1) {
+            raf.seek(cpOffset);
+            raf.readInt();
+            raf.readLong();
+            int numActiveTxns = raf.readInt();
+            for (int i = 0; i < numActiveTxns; i++) {
+                long txnId = raf.readLong();
+                long firstOffset = raf.readLong();
+                tidToFirstLogRecord.put(txnId, firstOffset);
+            }
+            raf.readLong();
+        }
     }
 
 }
